@@ -22,6 +22,11 @@ package com.celements.payment.service;
 import static org.easymock.EasyMock.*;
 import static org.junit.Assert.*;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.easymock.Capture;
 import org.junit.Before;
 import org.junit.Test;
@@ -55,8 +60,39 @@ public class PayPalScriptServiceTest extends AbstractBridgedComponentTestCase {
   }
 
   @Test
+  public void testGetOrigMessage_singleString() {
+    Map<String, String[]> paramMap = new HashMap<String, String[]>();
+    paramMap.put("a", new String[] {"b"});
+    paramMap.put("c", new String[] {"d"});
+    expect(mockRequest.getParameterMap()).andReturn(paramMap).anyTimes();
+    replayAll();
+    String origMessage = paypalScriptService.getOrigMessage(mockRequest);
+    assertTrue(origMessage, origMessage.contains("a=b\n"));
+    assertTrue(origMessage, origMessage.contains("c=d\n"));
+    verifyAll();
+  }
+
+  @Test
+  public void testGetOrigMessage_multipleString() {
+    Map<String, String[]> paramMap = new HashMap<String, String[]>();
+    paramMap.put("a", new String[] {"b"});
+    paramMap.put("c", new String[] {"d", "e"});
+    paramMap.put("f", new String[] {"g"});
+    expect(mockRequest.getParameterMap()).andReturn(paramMap).anyTimes();
+    replayAll();
+    String origMessage = paypalScriptService.getOrigMessage(mockRequest);
+    assertTrue(origMessage, origMessage.contains("a=b\n"));
+    assertTrue(origMessage, origMessage.contains("c=[d, e]\n"));
+    assertTrue(origMessage, origMessage.contains("f=g\n"));
+    verifyAll();
+  }
+
+  @Test
   public void testStorePayPalCallback() throws Exception {
-    expect(mockRequest.get(eq("txn_id"))).andReturn("1GM85317KV049841K").atLeastOnce();
+    String txnId = "1GM85317KV049841K";
+    expect(mockRequest.get(eq("txn_id"))).andReturn(txnId).atLeastOnce();
+    expect(mockRequest.get(isA(String.class))).andReturn(null).anyTimes();
+    expect(mockRequest.getParameterMap()).andReturn(null).anyTimes();
     Capture<PayPal> payPalObjCapture = new Capture<PayPal>();
     mockPayPalService.storePayPalObject(capture(payPalObjCapture), eq(true));
     expectLastCall().once();
@@ -64,17 +100,99 @@ public class PayPalScriptServiceTest extends AbstractBridgedComponentTestCase {
     paypalScriptService.storePayPalCallback();
     PayPal payPalObj = payPalObjCapture.getValue();
     assertNotNull(payPalObj);
+    assertEquals(txnId, payPalObj.getTxn_id());
     verifyAll();
   }
 
   @Test
-  public void testCreatePayPalObjFromRequest() {
-    //TODO
+  public void testCreatePayPalObjFromRequest() throws Exception {
+    String origMessage = "tax1=2.40\n"
+      + "residence_country=DE\n"
+      + "shipping_discount=0.00\n"
+      + "num_cart_items=1\n"
+      + "invoice=913774\n"
+      + "address_city=Musterort\n"
+      + "payer_id=SLMPXMKUWVF44\n"
+      + "first_name=Philipp\n"
+      + "txn_id=1GM85317KV049841K\n"
+      + "receiver_email=dealer_1332258454_biz@synventis.com\n"
+      + "custom=Weitere Infos die von Paypal nur weitergeleitet werden...\n"
+      + "payment_date=01:46:06 Apr 24, 2012 PDT\n"
+      + "charset=windows-1252\n"
+      + "address_country_code=DE\n"
+      + "payment_gross=\n"
+      + "address_zip=1234\n"
+      + "item_name1=Ihre Bestellung ABC123\n"
+      + "ipn_track_id=665a591250dc1\n"
+      + "discount=2.50\n"
+      + "mc_handling=3.00\n"
+      + "mc_handling1=0.00\n"
+      + "tax=2.20\n"
+      + "address_name=Peter Muster\n"
+      + "last_name=Buser\n"
+      + "receiver_id=WG2M8GUTB5HPL\n"
+      + "shipping_method=Default\n"
+      + "verify_sign=A0RW9Ox1hgP6eQ-urjHfAlccEDbcAizs6d3oEIDBHcTw5Hn27yDD0WIT\n"
+      + "insurance_amount=0.00\n"
+      + "address_country=Germany\n"
+      + "address_status=unconfirmed\n"
+      + "business=dealer_1332258454_biz@synventis.com\n"
+      + "payment_status=Pending\n"
+      + "transaction_subject=Weitere Infos die von Paypal nur weitergeleitet werden...\n"
+      + "protection_eligibility=Eligible\n"
+      + "payer_email=client_1332258558_pre@synventis.com\n"
+      + "notify_version=3.4\n"
+      + "txn_type=cart\n"
+      + "mc_gross=33.70\n"
+      + "payer_status=verified\n"
+      + "mc_currency=CHF\n"
+      + "mc_shipping=1.00\n"
+      + "test_ipn=1\n"
+      + "mc_gross_1=31.00\n"
+      + "mc_shipping1=1.00\n"
+      + "item_number1=ABC123\n"
+      + "quantity1=1\n"
+      + "address_state=\n"
+      + "pending_reason=multi_currency\n"
+      + "payment_type=instant\n"
+      + "address_street=Musterstrasse 12";
+    addToRequest(origMessage);
+    String txnId = "1GM85317KV049841K";
+    String invoice = "913774";
+    String payerId = "SLMPXMKUWVF44";
+    String paymentDateStr = "01:46:06 Apr 24, 2012 PDT";
     replayAll();
-    assertNotNull(paypalScriptService.createPayPalObjFromRequest());
+    PayPal payPalObj = paypalScriptService.createPayPalObjFromRequest();
+    assertNotNull(payPalObj);
+    assertEquals(txnId, payPalObj.getTxn_id());
+    assertEquals(invoice, payPalObj.getInvoice());
+    assertEquals(payerId, payPalObj.getPayerId());
+    Date paymentDate = new SimpleDateFormat("HH:mm:ss MMM dd, yyyy zz").parse(
+        paymentDateStr);
+    assertEquals(paymentDate, payPalObj.getPayment_date());
+    for (String line : origMessage.split("\n")) {
+      assertTrue("not found [" + line + "].", origMessage.contains(line));
+    }
+    //TODO other fields
     verifyAll();
   }
 
+
+  private void addToRequest(String origMessage) {
+    Map<String, String[]> paramMap = new HashMap<String, String[]>();
+    for (String line : origMessage.split("\n")) {
+      String[] pair = line.split("=");
+      String value = "";
+      if (pair.length > 1) {
+        value = pair[1];
+      }
+      expect(mockRequest.get(pair[0])).andReturn(value).anyTimes();
+      expect(mockRequest.getParameter(pair[0])).andReturn(value).anyTimes();
+      String[] params = new String[] {value};
+      paramMap.put(pair[0], params);
+    }
+    expect(mockRequest.getParameterMap()).andReturn(paramMap);
+  }
 
   private void replayAll(Object ... mocks) {
     replay(xwiki, mockRequest, mockPayPalService);

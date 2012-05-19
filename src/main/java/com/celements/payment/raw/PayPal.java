@@ -29,7 +29,7 @@ public class PayPal {
   /**
    * transaction id is required
    */
-  private Integer txn_id;
+  private String txn_id;
 
   private String txn_type;
 
@@ -83,11 +83,11 @@ public class PayPal {
     reason_code = reasonCode;
   }
 
-  public Integer getTxn_id() {
+  public String getTxn_id() {
     return txn_id;
   }
 
-  public void setTxn_id(Integer txnId) {
+  public void setTxn_id(String txnId) {
     txn_id = txnId;
   }
 

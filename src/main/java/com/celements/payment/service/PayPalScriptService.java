@@ -19,6 +19,11 @@
  */
 package com.celements.payment.service;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Arrays;
+import java.util.Map;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.xwiki.component.annotation.Component;
@@ -29,6 +34,7 @@ import org.xwiki.script.service.ScriptService;
 import com.celements.payment.raw.PayPal;
 import com.xpn.xwiki.XWikiContext;
 import com.xpn.xwiki.XWikiException;
+import com.xpn.xwiki.web.XWikiRequest;
 
 @Component("payPal")
 public class PayPalScriptService implements ScriptService {
@@ -41,6 +47,9 @@ public class PayPalScriptService implements ScriptService {
 
   @Requirement
   Execution execution;
+
+  private SimpleDateFormat paymentDateFormat = new SimpleDateFormat(
+      "HH:mm:ss MMM dd, yyyy zz");
 
   private XWikiContext getContext() {
     return (XWikiContext)execution.getContext().getProperty("xwikicontext");
@@ -59,8 +68,42 @@ public class PayPalScriptService implements ScriptService {
 
   PayPal createPayPalObjFromRequest() {
     PayPal payPalObj = new PayPal();
+    XWikiRequest request = getContext().getRequest();
+    String txnId = request.get("txn_id");
+    payPalObj.setTxn_id(txnId);
+    payPalObj.setInvoice(request.get("invoice"));
+    payPalObj.setPayerId(request.get("payer_id"));
+    String payment_date = request.get("payment_date");
+    if (payment_date != null) {
+      try {
+        payPalObj.setPayment_date(paymentDateFormat.parse(payment_date));
+      } catch (ParseException exp) {
+        LOGGER.error("Failed to parse payment date [" + request.get("payment_date")
+            + "] for txn_id [" + txnId + "].", exp);
+      }
+    }
+    payPalObj.setOrigMessage(getOrigMessage(request));
     // TODO fill date from Request into PayPal object
     return payPalObj;
+  }
+
+  @SuppressWarnings("unchecked")
+  String getOrigMessage(XWikiRequest request) {
+    StringBuffer origMessageBuffer = new StringBuffer();
+    Map<String, String[]> parameterMap = request.getParameterMap();
+    if (parameterMap != null) {
+      for (String key : parameterMap.keySet()) {
+        String[] values = parameterMap.get(key);
+        String valueStr = "";
+        if (values.length == 1) {
+          valueStr = values[0];
+        } else {
+          valueStr = Arrays.deepToString(values);
+        }
+        origMessageBuffer.append(key + "=" + valueStr + "\n");
+      }
+    }
+    return origMessageBuffer.toString();
   }
 
 }
