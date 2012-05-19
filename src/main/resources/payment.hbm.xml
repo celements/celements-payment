@@ -1,0 +1,84 @@
+<?xml version="1.0"?>
+<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD//EN"
+        "http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+
+<!--
+ *
+ * See the NOTICE file distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation; either version 2.1 of
+ * the License, or (at your option) any later version.
+ *
+ * This software is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this software; if not, write to the Free
+ * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+ *
+-->
+
+<hibernate-mapping>
+  <class entity-name="PaymentClasses.HistoryClass" table="cel_payment_history">
+  <id name="id" type="integer" unsaved-value="undefined">
+    <column name="CPH_ID" not-null="true" />
+    <generator class="assigned" />
+  </id>
+  <property name="amount" type="integer">
+    <column name="CPH_AMOUNT" />
+  </property>
+  <property name="tax_rate" type="float">
+    <column name="CPH_TAX_RATE" />
+  </property>
+  <property name="currency" type="string">
+    <column name="CPH_CURRENCY" />
+  </property>
+  <property name="cart_ref" type="string">
+    <column name="CPH_CART_REF" />
+  </property>
+  <property name="paymentStatus" type="string">
+    <column name="CPH_PAYMENT_STATUS" />
+  </property>
+  </class>
+
+  <class name="com.celements.payment.PayPall" table="cel_payment_paypall">
+    <id name="CPPP_ID" type="string" unsaved-value="undefined">
+      <column name="CPPP_ID" not-null="true" />
+      <generator class="assigned" />
+    </id>
+	  <property name="payment_date" type="timestamp">
+	    <column name="CPPP_PAYMENT_DATE" />
+	  </property>
+    <property name="origHeader" type="text">
+      <column name="CPPP_ORIG_HEADER" />
+    </property>
+    <property name="origMessage" type="text">
+      <column name="CPPP_ORIG_MESSAGE" />
+    </property>
+    <property name="payerId" type="string">
+      <column name="CPPP_PAYER_ID" />
+    </property>
+    <property name="receiverId" type="string">
+      <column name="CPPP_RECEIVER_ID" />
+    </property>
+    <property name="paymentStatus" type="string">
+      <column name="CPPP_PAYMENT_STATUS" />
+    </property>
+    <property name="verify_sign" type="string">
+      <column name="CPPP_VERIFY_SIGN" />
+    </property>
+    <property name="invoice" type="string">
+      <column name="CPPP_INVOICE" />
+    </property>
+    <property name="processStatus" type="string">
+      <column name="CPPP_PROCESS_STATUS" />
+    </property>
+  </class>
+
+</hibernate-mapping>
