@@ -47,7 +47,7 @@
   </property>
   </class>
 
-  <class name="com.celements.payment.raw.PayPall" table="cel_payment_paypall">
+  <class name="com.celements.payment.raw.PayPal" table="cel_payment_paypall">
     <id name="txn_id" type="string" unsaved-value="undefined">
       <column name="CPPP_TXN_ID" not-null="true" />
       <generator class="assigned" />

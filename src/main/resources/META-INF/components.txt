@@ -1,0 +1,2 @@
+com.celements.payment.service.PayPalService
+com.celements.payment.service.PayPalScriptService

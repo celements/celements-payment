@@ -24,7 +24,7 @@ import java.util.Date;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
 
-public class PayPall {
+public class PayPal {
 
   /**
    * transaction id is required
@@ -56,7 +56,7 @@ public class PayPall {
   @Enumerated(EnumType.STRING)
   private EProcessStatus processStatus;
 
-  public PayPall() {
+  public PayPal() {
   }
 
   public String getTxn_type() {
