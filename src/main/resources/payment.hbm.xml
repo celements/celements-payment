@@ -48,10 +48,13 @@
   </class>
 
   <class name="com.celements.payment.raw.PayPall" table="cel_payment_paypall">
-    <id name="CPPP_ID" type="string" unsaved-value="undefined">
-      <column name="CPPP_ID" not-null="true" />
+    <id name="txn_id" type="string" unsaved-value="undefined">
+      <column name="CPPP_TXN_ID" not-null="true" />
       <generator class="assigned" />
     </id>
+    <property name="txn_type" type="string">
+      <column name="CPPP_TXN_TYPE" />
+    </property>
 	  <property name="payment_date" type="timestamp">
 	    <column name="CPPP_PAYMENT_DATE" />
 	  </property>
@@ -69,6 +72,12 @@
     </property>
     <property name="paymentStatus" type="string">
       <column name="CPPP_PAYMENT_STATUS" />
+    </property>
+    <property name="pending_reason" type="string">
+      <column name="CPPP_PENDING_REASON" />
+    </property>
+    <property name="reason_code" type="string">
+      <column name="CPPP_REASON_CODE" />
     </property>
     <property name="verify_sign" type="string">
       <column name="CPPP_VERIFY_SIGN" />

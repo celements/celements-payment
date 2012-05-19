@@ -26,6 +26,13 @@ import javax.persistence.Enumerated;
 
 public class PayPall {
 
+  /**
+   * transaction id is required
+   */
+  private Integer txn_id;
+
+  private String txn_type;
+
   private Date payment_date;
 
   private String origHeader;
@@ -38,12 +45,51 @@ public class PayPall {
 
   private String paymentStatus;
 
+  private String pending_reason;
+
+  private String reason_code;
+
   private String verify_sign;
 
   private String invoice;
 
   @Enumerated(EnumType.STRING)
   private EProcessStatus processStatus;
+
+  public PayPall() {
+  }
+
+  public String getTxn_type() {
+    return txn_type;
+  }
+
+  public void setTxn_type(String txnType) {
+    txn_type = txnType;
+  }
+
+  public String getPending_reason() {
+    return pending_reason;
+  }
+
+  public void setPending_reason(String pendingReason) {
+    pending_reason = pendingReason;
+  }
+
+  public String getReason_code() {
+    return reason_code;
+  }
+
+  public void setReason_code(String reasonCode) {
+    reason_code = reasonCode;
+  }
+
+  public Integer getTxn_id() {
+    return txn_id;
+  }
+
+  public void setTxn_id(Integer txnId) {
+    txn_id = txnId;
+  }
 
   public Date getPayment_date() {
     return payment_date;
