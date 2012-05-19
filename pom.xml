@@ -31,7 +31,7 @@
   </parent>
   <modelVersion>4.0.0</modelVersion>  
   <groupId>com.celements</groupId>
-  <artifactId>celements-payment</artifactId>
+  <artifactId>payment</artifactId>
   <version>0.9-SNAPSHOT</version>
   <description>Celements Payment</description> 
   <dependencies>    
