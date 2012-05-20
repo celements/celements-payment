@@ -62,11 +62,13 @@ public class PayPalScriptService implements ScriptService {
   public void storePayPalCallback() {
     String txnId = getRequestParam("txn_id");
     LOGGER.info("received paypal callback with txn_id [" + txnId + "].");
-    PayPal payPalObj = createPayPalObjFromRequest();
-    try {
-      payPalService.storePayPalObject(payPalObj, true);
-    } catch (XWikiException exp) {
-      LOGGER.error("Failed to store paypal object for txn_id [" + txnId + "].", exp);
+    if ((txnId != null) && (!"".equals(txnId))) {
+      PayPal payPalObj = createPayPalObjFromRequest();
+      try {
+        payPalService.storePayPalObject(payPalObj, true);
+      } catch (XWikiException exp) {
+        LOGGER.error("Failed to store paypal object for txn_id [" + txnId + "].", exp);
+      }
     }
   }
 

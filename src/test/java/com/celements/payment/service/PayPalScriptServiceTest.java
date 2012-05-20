@@ -110,6 +110,14 @@ public class PayPalScriptServiceTest extends AbstractBridgedComponentTestCase {
   }
 
   @Test
+  public void testStorePayPalCallback_no_txnId() throws Exception {
+    expect(mockRequest.get(eq("txn_id"))).andReturn(null).atLeastOnce();
+    replayAll();
+    paypalScriptService.storePayPalCallback();
+    verifyAll();
+  }
+
+  @Test
   public void testCreatePayPalObjFromRequest() throws Exception {
     String origMessage = "tax1=2.40\n"
       + "residence_country=DE\n"
