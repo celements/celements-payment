@@ -22,6 +22,9 @@ package com.celements.payment.service;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.logging.Log;
@@ -31,6 +34,7 @@ import org.xwiki.component.annotation.Requirement;
 import org.xwiki.context.Execution;
 import org.xwiki.script.service.ScriptService;
 
+import com.celements.payment.raw.EProcessStatus;
 import com.celements.payment.raw.PayPal;
 import com.xpn.xwiki.XWikiContext;
 import com.xpn.xwiki.XWikiException;
@@ -56,7 +60,7 @@ public class PayPalScriptService implements ScriptService {
   }
 
   public void storePayPalCallback() {
-    String txnId = getContext().getRequest().get("txn_id");
+    String txnId = getRequestParam("txn_id");
     LOGGER.info("received paypal callback with txn_id [" + txnId + "].");
     PayPal payPalObj = createPayPalObjFromRequest();
     try {
@@ -68,23 +72,46 @@ public class PayPalScriptService implements ScriptService {
 
   PayPal createPayPalObjFromRequest() {
     PayPal payPalObj = new PayPal();
-    XWikiRequest request = getContext().getRequest();
-    String txnId = request.get("txn_id");
+    String txnId = getRequestParam("txn_id");
     payPalObj.setTxn_id(txnId);
-    payPalObj.setInvoice(request.get("invoice"));
-    payPalObj.setPayerId(request.get("payer_id"));
-    String payment_date = request.get("payment_date");
+    payPalObj.setTxn_type(getRequestParam("txn_type"));
+    String payment_date = getRequestParam("payment_date");
     if (payment_date != null) {
       try {
         payPalObj.setPayment_date(paymentDateFormat.parse(payment_date));
       } catch (ParseException exp) {
-        LOGGER.error("Failed to parse payment date [" + request.get("payment_date")
+        LOGGER.error("Failed to parse payment date [" + getRequestParam("payment_date")
             + "] for txn_id [" + txnId + "].", exp);
       }
     }
-    payPalObj.setOrigMessage(getOrigMessage(request));
-    // TODO fill date from Request into PayPal object
+    payPalObj.setOrigHeader(getOrigHeader(getContext().getRequest()));
+    payPalObj.setOrigMessage(getOrigMessage(getContext().getRequest()));
+    payPalObj.setPayerId(getRequestParam("payer_id"));
+    payPalObj.setReceiverId(getRequestParam("receiver_id"));
+    payPalObj.setPaymentStatus(getRequestParam("payment_status"));
+    payPalObj.setPending_reason(getRequestParam("pending_reason"));
+    payPalObj.setReason_code(getRequestParam("reason_code"));
+    payPalObj.setVerify_sign(getRequestParam("verify_sign"));
+    payPalObj.setInvoice(getRequestParam("invoice"));
+    payPalObj.setProcessStatus(EProcessStatus.New);
     return payPalObj;
+  }
+
+  private String getRequestParam(String key) {
+    return getContext().getRequest().get(key);
+  }
+
+  @SuppressWarnings("unchecked")
+  String getOrigHeader(XWikiRequest request) {
+    StringBuffer origHeaderBuffer = new StringBuffer();
+    Enumeration headerNames = request.getHeaderNames();
+    while (headerNames.hasMoreElements()) {
+      String key = (String) headerNames.nextElement();
+      List<String> valueList = Collections.list(request.getHeaders(key));
+      String[] values = valueList.toArray(new String[0]);
+      addParamToStringBuffer(origHeaderBuffer, key, values);
+    }
+    return origHeaderBuffer.toString();
   }
 
   @SuppressWarnings("unchecked")
@@ -94,16 +121,21 @@ public class PayPalScriptService implements ScriptService {
     if (parameterMap != null) {
       for (String key : parameterMap.keySet()) {
         String[] values = parameterMap.get(key);
-        String valueStr = "";
-        if (values.length == 1) {
-          valueStr = values[0];
-        } else {
-          valueStr = Arrays.deepToString(values);
-        }
-        origMessageBuffer.append(key + "=" + valueStr + "\n");
+        addParamToStringBuffer(origMessageBuffer, key, values);
       }
     }
     return origMessageBuffer.toString();
+  }
+
+  private void addParamToStringBuffer(StringBuffer stringBuffer, String key,
+      String[] values) {
+    String valueStr = "";
+    if (values.length == 1) {
+      valueStr = values[0];
+    } else {
+      valueStr = Arrays.deepToString(values);
+    }
+    stringBuffer.append(key + "=" + valueStr + "\n");
   }
 
 }

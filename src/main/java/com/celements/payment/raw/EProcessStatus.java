@@ -21,6 +21,6 @@ package com.celements.payment.raw;
 
 public enum EProcessStatus {
 
-  New, Unverified, Verified, Processed;
+  New, Unverified, Verified, Processed, Unknown;
 
 }

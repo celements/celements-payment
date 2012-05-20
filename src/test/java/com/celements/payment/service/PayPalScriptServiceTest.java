@@ -23,6 +23,8 @@ import static org.easymock.EasyMock.*;
 import static org.junit.Assert.*;
 
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -33,6 +35,7 @@ import org.junit.Test;
 import org.xwiki.context.Execution;
 
 import com.celements.common.test.AbstractBridgedComponentTestCase;
+import com.celements.payment.raw.EProcessStatus;
 import com.celements.payment.raw.PayPal;
 import com.xpn.xwiki.XWiki;
 import com.xpn.xwiki.XWikiContext;
@@ -96,6 +99,8 @@ public class PayPalScriptServiceTest extends AbstractBridgedComponentTestCase {
     Capture<PayPal> payPalObjCapture = new Capture<PayPal>();
     mockPayPalService.storePayPalObject(capture(payPalObjCapture), eq(true));
     expectLastCall().once();
+    expect(mockRequest.getHeaderNames()).andReturn(Collections.enumeration(
+        Collections.emptyList())).anyTimes();
     replayAll();
     paypalScriptService.storePayPalCallback();
     PayPal payPalObj = payPalObjCapture.getValue();
@@ -157,23 +162,40 @@ public class PayPalScriptServiceTest extends AbstractBridgedComponentTestCase {
       + "payment_type=instant\n"
       + "address_street=Musterstrasse 12";
     addToRequest(origMessage);
-    String txnId = "1GM85317KV049841K";
-    String invoice = "913774";
-    String payerId = "SLMPXMKUWVF44";
-    String paymentDateStr = "01:46:06 Apr 24, 2012 PDT";
+    expect(mockRequest.get(eq("reason_code"))).andReturn(null).anyTimes();
+    expect(mockRequest.getHeaderNames()).andReturn(Collections.enumeration(
+        Arrays.asList("Content-Type", "Character-Encoding"))).anyTimes();
+    expect(mockRequest.getHeaders(eq("Content-Type"))).andReturn(Collections.enumeration(
+        Arrays.asList("abcd"))).anyTimes();
+    expect(mockRequest.getHeaders(eq("Character-Encoding"))).andReturn(
+        Collections.enumeration(Arrays.asList("defg"))).anyTimes();
+    Date paymentDate = new SimpleDateFormat("HH:mm:ss MMM dd, yyyy zz").parse(
+        "01:46:06 Apr 24, 2012 PDT");
     replayAll();
     PayPal payPalObj = paypalScriptService.createPayPalObjFromRequest();
     assertNotNull(payPalObj);
-    assertEquals(txnId, payPalObj.getTxn_id());
-    assertEquals(invoice, payPalObj.getInvoice());
-    assertEquals(payerId, payPalObj.getPayerId());
-    Date paymentDate = new SimpleDateFormat("HH:mm:ss MMM dd, yyyy zz").parse(
-        paymentDateStr);
+    assertEquals("1GM85317KV049841K", payPalObj.getTxn_id());
+    assertEquals("cart", payPalObj.getTxn_type());
     assertEquals(paymentDate, payPalObj.getPayment_date());
+    String headerLine = "Content-Type=abcd\n";
+    assertTrue("not found [" + headerLine + "] in [" + payPalObj.getOrigHeader() + "].",
+        payPalObj.getOrigHeader().contains( headerLine));
+    headerLine = "Character-Encoding=defg\n";
+    assertTrue("not found [" + headerLine + "] in [" + payPalObj.getOrigHeader() + "].",
+        payPalObj.getOrigHeader().contains(headerLine));
     for (String line : origMessage.split("\n")) {
-      assertTrue("not found [" + line + "].", origMessage.contains(line));
+      assertTrue("not found [" + line + "] in [" + payPalObj.getOrigMessage() + "].",
+          payPalObj.getOrigMessage().contains(line));
     }
-    //TODO other fields
+    assertEquals("SLMPXMKUWVF44", payPalObj.getPayerId());
+    assertEquals("WG2M8GUTB5HPL", payPalObj.getReceiverId());
+    assertEquals("Pending", payPalObj.getPaymentStatus());
+    assertEquals("multi_currency", payPalObj.getPending_reason());
+    assertEquals("", payPalObj.getReason_code());
+    assertEquals("A0RW9Ox1hgP6eQ-urjHfAlccEDbcAizs6d3oEIDBHcTw5Hn27yDD0WIT",
+        payPalObj.getVerify_sign());
+    assertEquals("913774", payPalObj.getInvoice());
+    assertEquals(EProcessStatus.New, payPalObj.getProcessStatus());
     verifyAll();
   }
 
@@ -186,8 +208,8 @@ public class PayPalScriptServiceTest extends AbstractBridgedComponentTestCase {
       if (pair.length > 1) {
         value = pair[1];
       }
-      expect(mockRequest.get(pair[0])).andReturn(value).anyTimes();
-      expect(mockRequest.getParameter(pair[0])).andReturn(value).anyTimes();
+      expect(mockRequest.get(eq(pair[0]))).andReturn(value).anyTimes();
+      expect(mockRequest.getParameter(eq(pair[0]))).andReturn(value).anyTimes();
       String[] params = new String[] {value};
       paramMap.put(pair[0], params);
     }

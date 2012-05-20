@@ -31,56 +31,32 @@ public class PayPal {
    */
   private String txn_id;
 
-  private String txn_type;
+  private String txn_type = "";
 
   private Date payment_date;
 
-  private String origHeader;
+  private String origHeader = "";
 
-  private String origMessage;
+  private String origMessage = "";
 
-  private String payerId;
+  private String payerId = "";
 
-  private String receiverId;
+  private String receiverId = "";
 
-  private String paymentStatus;
+  private String paymentStatus = "";
 
-  private String pending_reason;
+  private String pending_reason = "";
 
-  private String reason_code;
+  private String reason_code = "";
 
-  private String verify_sign;
+  private String verify_sign = "";
 
-  private String invoice;
+  private String invoice = "";
 
   @Enumerated(EnumType.STRING)
-  private EProcessStatus processStatus;
+  private EProcessStatus processStatus = EProcessStatus.Unknown;
 
   public PayPal() {
-  }
-
-  public String getTxn_type() {
-    return txn_type;
-  }
-
-  public void setTxn_type(String txnType) {
-    txn_type = txnType;
-  }
-
-  public String getPending_reason() {
-    return pending_reason;
-  }
-
-  public void setPending_reason(String pendingReason) {
-    pending_reason = pendingReason;
-  }
-
-  public String getReason_code() {
-    return reason_code;
-  }
-
-  public void setReason_code(String reasonCode) {
-    reason_code = reasonCode;
   }
 
   public String getTxn_id() {
@@ -89,6 +65,39 @@ public class PayPal {
 
   public void setTxn_id(String txnId) {
     txn_id = txnId;
+  }
+
+  public String getTxn_type() {
+    return txn_type;
+  }
+
+  public void setTxn_type(String txnType) {
+    if (txnType == null) {
+      txnType = "";
+    }
+    txn_type = txnType;
+  }
+
+  public String getPending_reason() {
+    return pending_reason;
+  }
+
+  public void setPending_reason(String pendingReason) {
+    if (pendingReason == null) {
+      pendingReason = "";
+    }
+    pending_reason = pendingReason;
+  }
+
+  public String getReason_code() {
+    return reason_code;
+  }
+
+  public void setReason_code(String reasonCode) {
+    if (reasonCode == null) {
+      reasonCode = "";
+    }
+    reason_code = reasonCode;
   }
 
   public Date getPayment_date() {
@@ -104,6 +113,9 @@ public class PayPal {
   }
 
   public void setOrigHeader(String origHeader) {
+    if (origHeader == null) {
+      origHeader = "";
+    }
     this.origHeader = origHeader;
   }
 
@@ -112,6 +124,9 @@ public class PayPal {
   }
 
   public void setOrigMessage(String origMessage) {
+    if (origMessage == null) {
+      origMessage = "";
+    }
     this.origMessage = origMessage;
   }
 
@@ -120,6 +135,9 @@ public class PayPal {
   }
 
   public void setPayerId(String payerId) {
+    if (payerId == null) {
+      payerId = "";
+    }
     this.payerId = payerId;
   }
 
@@ -128,6 +146,9 @@ public class PayPal {
   }
 
   public void setReceiverId(String receiverId) {
+    if (receiverId == null) {
+      receiverId = "";
+    }
     this.receiverId = receiverId;
   }
 
@@ -136,6 +157,9 @@ public class PayPal {
   }
 
   public void setPaymentStatus(String paymentStatus) {
+    if (paymentStatus == null) {
+      paymentStatus = "";
+    }
     this.paymentStatus = paymentStatus;
   }
 
@@ -144,6 +168,9 @@ public class PayPal {
   }
 
   public void setVerify_sign(String verifySign) {
+    if (verifySign == null) {
+      verifySign = "";
+    }
     verify_sign = verifySign;
   }
 
@@ -152,6 +179,9 @@ public class PayPal {
   }
 
   public void setInvoice(String invoice) {
+    if (invoice == null) {
+      invoice = "";
+    }
     this.invoice = invoice;
   }
 
@@ -160,6 +190,9 @@ public class PayPal {
   }
 
   public void setProcessStatus(EProcessStatus processStatus) {
+    if (processStatus == null) {
+      processStatus = EProcessStatus.Unknown;
+    }
     this.processStatus = processStatus;
   }
 
