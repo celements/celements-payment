@@ -88,8 +88,8 @@
 		<property name="processStatus" length="30">
       <column name="CPPP_PROCESS_STATUS" />
 			<type name="org.hibernate.type.EnumType">
-			<param name="enumClass">com.celements.payment.raw.EProcessStatus</param>
-			<param name="type">12</param>
+				<param name="enumClass">com.celements.payment.raw.EProcessStatus</param>
+				<param name="type">12</param>
 			</type>
     </property>
   </class>
