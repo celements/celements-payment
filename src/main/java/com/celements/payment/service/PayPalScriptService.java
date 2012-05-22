@@ -52,12 +52,12 @@ public class PayPalScriptService implements ScriptService {
   @Requirement
   Execution execution;
 
-  private SimpleDateFormat paymentDateFormat = new SimpleDateFormat(
-      "HH:mm:ss MMM dd, yyyy zz");
-
   private XWikiContext getContext() {
     return (XWikiContext)execution.getContext().getProperty("xwikicontext");
   }
+
+  private SimpleDateFormat paymentDateFormat = new SimpleDateFormat(
+      "HH:mm:ss MMM dd, yyyy zz");
 
   public void storePayPalCallback() {
     String txnId = getRequestParam("txn_id");
