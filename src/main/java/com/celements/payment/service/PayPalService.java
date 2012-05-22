@@ -102,7 +102,7 @@ public class PayPalService implements IPayPalService {
     session.setFlushMode(FlushMode.MANUAL);
 
     try {
-        session.load(payPalObj, new Long(payPalObj.getTxn_id()));
+        session.load(payPalObj, payPalObj.getTxn_id());
     } catch (ObjectNotFoundException e) {
       // No paypall object in store
     }
