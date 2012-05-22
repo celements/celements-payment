@@ -30,7 +30,7 @@ public class PaymentService implements IPaymentService {
   public void executePaymentAction(Map<String, String[]> data) {
     try {
       DocumentReference callbackDocRef = new DocumentReference(
-          getContext().getDatabase(), "Payment", "CallbackAction");
+          getContext().getDatabase(), "Payment", "CallbackActions");
       if (getContext().getWiki().exists(callbackDocRef, getContext())) {
         XWikiDocument actionXdoc = getContext().getWiki().getDocument(callbackDocRef, 
             getContext());
@@ -39,8 +39,8 @@ public class PaymentService implements IPaymentService {
             ).getPluginApi("celementsweb", getContext());
         celementsweb.getPlugin().executeAction(actionDoc, data, actionXdoc, getContext());
       } else {
-        LOGGER.warn("Failed to execute payment action because Payment.CallbackAction does"
-            + " not exist in [" + getContext().getDatabase() + "].");
+        LOGGER.warn("Failed to execute payment action because Payment.CallbackActions"
+            + " does not exist in [" + getContext().getDatabase() + "].");
       }
     } catch (XWikiException e) {
       LOGGER.error("Exeption while creating callback object", e);

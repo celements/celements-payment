@@ -33,13 +33,17 @@ import org.apache.commons.logging.LogFactory;
 import org.xwiki.component.annotation.Component;
 import org.xwiki.component.annotation.Requirement;
 import org.xwiki.context.Execution;
+import org.xwiki.model.reference.DocumentReference;
 import org.xwiki.script.service.ScriptService;
 
 import com.celements.payment.IPaymentService;
 import com.celements.payment.raw.EProcessStatus;
 import com.celements.payment.raw.PayPal;
+import com.celements.web.service.IWebUtilsService;
 import com.xpn.xwiki.XWikiContext;
 import com.xpn.xwiki.XWikiException;
+import com.xpn.xwiki.doc.XWikiDocument;
+import com.xpn.xwiki.objects.BaseObject;
 import com.xpn.xwiki.web.XWikiRequest;
 
 @Component("payPal")
@@ -53,6 +57,9 @@ public class PayPalScriptService implements ScriptService {
 
   @Requirement
   IPaymentService paymentService;
+
+  @Requirement
+  IWebUtilsService webUtils;
 
   @Requirement
   Execution execution;
@@ -90,9 +97,19 @@ public class PayPalScriptService implements ScriptService {
       if (customValueSplit.length > 1) {
         String cartDocFN = customValueSplit[0];
         String user = customValue.split(";")[1];
-        data.put("cartUser", new String[] {user});
+        data.put("cartUser", new String[] { user });
         getContext().setUser(user);
-        data.put("cartDocFN", new String[] {cartDocFN});
+        try {
+          XWikiDocument userDoc = getContext().getWiki().getDocument(
+              webUtils.resolveDocumentReference(user), getContext());
+          BaseObject userObj = userDoc.getXObject(new DocumentReference(
+              getContext().getDatabase(), "XWiki", "XWikiUsers"));
+          data.put("userEmail", new String[] { userObj.getStringValue("email") });
+        } catch (XWikiException exp) {
+          LOGGER.error("Failed to get userdoc for [" + user + "]. Possibly failing to"
+              + " send any callback emails.", exp);
+        }
+        data.put("cartDocFN", new String[] { cartDocFN });
       } else {
         LOGGER.warn("illegal custom value [" + customValue + "] found."
             + " Failed to reconstruct cart payed.");
