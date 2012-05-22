@@ -103,9 +103,14 @@ public class PayPalService implements IPayPalService {
 
     try {
         session.load(payPalObj, payPalObj.getTxn_id());
-    } catch (ObjectNotFoundException e) {
+    } catch (ObjectNotFoundException exp) {
+      LOGGER.debug("no paypal object for txn_id [" + payPalObj.getTxn_id() + "] in"
+          + " database [" + getContext().getDatabase() + "] found.");
       // No paypall object in store
     }
+    LOGGER.trace("successfully loaded paypal object for txn_id [" + payPalObj.getTxn_id()
+        + "] in database [" + getContext().getDatabase() + "] :"
+        + payPalObj.getOrigMessage());
     return payPalObj;
   }
 
