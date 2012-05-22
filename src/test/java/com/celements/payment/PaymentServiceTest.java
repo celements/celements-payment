@@ -31,7 +31,7 @@ public class PaymentServiceTest extends AbstractBridgedComponentTestCase {
   public void testExecutePaymentAction_noCallbackAction() {
     Map<String, String[]> data = new HashMap<String, String[]>();
     DocumentReference callbackActionDocRef = new DocumentReference(context.getDatabase(),
-        "Payment", "CallbackAction");
+        "Payment", "CallbackActions");
     expect(xwiki.exists(eq(callbackActionDocRef), same(context))).andReturn(false
         ).anyTimes();
     replayAll();
