@@ -35,6 +35,7 @@ import org.junit.Test;
 import org.xwiki.context.Execution;
 
 import com.celements.common.test.AbstractBridgedComponentTestCase;
+import com.celements.payment.IPaymentService;
 import com.celements.payment.raw.EProcessStatus;
 import com.celements.payment.raw.PayPal;
 import com.xpn.xwiki.XWiki;
@@ -48,6 +49,7 @@ public class PayPalScriptServiceTest extends AbstractBridgedComponentTestCase {
   private XWikiContext context;
   private XWikiRequest mockRequest;
   private IPayPalService mockPayPalService;
+  private IPaymentService mockPaymentService;
 
   @Before
   public void setUp_PayPalScriptServiceTest() throws Exception {
@@ -60,6 +62,8 @@ public class PayPalScriptServiceTest extends AbstractBridgedComponentTestCase {
     paypalScriptService.execution = getComponentManager().lookup(Execution.class);
     mockPayPalService = createMock(IPayPalService.class);
     paypalScriptService.payPalService = mockPayPalService;
+    mockPaymentService = createMock(IPaymentService.class);
+    paypalScriptService.paymentService = mockPaymentService ;
   }
 
   @Test
@@ -90,17 +94,21 @@ public class PayPalScriptServiceTest extends AbstractBridgedComponentTestCase {
     verifyAll();
   }
 
+  @SuppressWarnings("unchecked")
   @Test
   public void testStorePayPalCallback() throws Exception {
     String txnId = "1GM85317KV049841K";
     expect(mockRequest.get(eq("txn_id"))).andReturn(txnId).atLeastOnce();
     expect(mockRequest.get(isA(String.class))).andReturn(null).anyTimes();
-    expect(mockRequest.getParameterMap()).andReturn(null).anyTimes();
+    Map<String, String[]> paramMap = new HashMap<String, String[]>();
+    expect(mockRequest.getParameterMap()).andReturn(paramMap).anyTimes();
     Capture<PayPal> payPalObjCapture = new Capture<PayPal>();
     mockPayPalService.storePayPalObject(capture(payPalObjCapture), eq(true));
     expectLastCall().once();
     expect(mockRequest.getHeaderNames()).andReturn(Collections.enumeration(
         Collections.emptyList())).anyTimes();
+    mockPaymentService.executePaymentAction(isA(Map.class));
+    expectLastCall().once();
     replayAll();
     paypalScriptService.storePayPalCallback();
     PayPal payPalObj = payPalObjCapture.getValue();
@@ -225,12 +233,12 @@ public class PayPalScriptServiceTest extends AbstractBridgedComponentTestCase {
   }
 
   private void replayAll(Object ... mocks) {
-    replay(xwiki, mockRequest, mockPayPalService);
+    replay(xwiki, mockRequest, mockPayPalService, mockPaymentService);
     replay(mocks);
   }
 
   private void verifyAll(Object ... mocks) {
-    verify(xwiki, mockRequest, mockPayPalService);
+    verify(xwiki, mockRequest, mockPayPalService, mockPaymentService);
     verify(mocks);
   }
 

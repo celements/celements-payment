@@ -24,6 +24,7 @@ import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -34,6 +35,7 @@ import org.xwiki.component.annotation.Requirement;
 import org.xwiki.context.Execution;
 import org.xwiki.script.service.ScriptService;
 
+import com.celements.payment.IPaymentService;
 import com.celements.payment.raw.EProcessStatus;
 import com.celements.payment.raw.PayPal;
 import com.xpn.xwiki.XWikiContext;
@@ -48,6 +50,9 @@ public class PayPalScriptService implements ScriptService {
 
   @Requirement
   IPayPalService payPalService;
+
+  @Requirement
+  IPaymentService paymentService;
 
   @Requirement
   Execution execution;
@@ -66,10 +71,36 @@ public class PayPalScriptService implements ScriptService {
       PayPal payPalObj = createPayPalObjFromRequest();
       try {
         payPalService.storePayPalObject(payPalObj, true);
+        //FIXME move execution of callbackAction to general async processing of callback
+        executeCallbackAction();
       } catch (XWikiException exp) {
         LOGGER.error("Failed to store paypal object for txn_id [" + txnId + "].", exp);
       }
     }
+  }
+
+  @SuppressWarnings("unchecked")
+  private void executeCallbackAction() {
+    Map<String, String[]> data = new HashMap<String, String[]>();
+    data.putAll(getContext().getRequest().getParameterMap());
+    String customValue = getRequestParam("custom");
+    if ((customValue != null) && (!"".equals(customValue))) {
+      //shoppingCartDoc.fullName;$user
+      String[] customValueSplit = customValue.split(";");
+      if (customValueSplit.length > 1) {
+        String cartDocFN = customValueSplit[0];
+        String user = customValue.split(";")[1];
+        data.put("cartUser", new String[] {user});
+        getContext().setUser(user);
+        data.put("cartDocFN", new String[] {cartDocFN});
+      } else {
+        LOGGER.warn("illegal custom value [" + customValue + "] found."
+            + " Failed to reconstruct cart payed.");
+      }
+    } else {
+      LOGGER.warn("no custom value found to reconstruct cart payed.");
+    }
+    paymentService.executePaymentAction(data);
   }
 
   PayPal createPayPalObjFromRequest() {
