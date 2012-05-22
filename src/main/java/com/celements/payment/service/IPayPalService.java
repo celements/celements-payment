@@ -30,4 +30,6 @@ public interface IPayPalService {
   public void storePayPalObject(final PayPal payPalObj, boolean bTransaction
       ) throws XWikiException;
 
+  public PayPal loadPayPalObject(final String txnId) throws XWikiException;
+
 }

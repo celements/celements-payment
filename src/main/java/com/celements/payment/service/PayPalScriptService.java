@@ -79,43 +79,56 @@ public class PayPalScriptService implements ScriptService {
       try {
         payPalService.storePayPalObject(payPalObj, true);
         //FIXME move execution of callbackAction to general async processing of callback
-        executeCallbackAction();
+        executeCallbackAction(getContext().getRequest().getParameterMap());
       } catch (XWikiException exp) {
         LOGGER.error("Failed to store paypal object for txn_id [" + txnId + "].", exp);
       }
     }
   }
 
+  public boolean reExecuteCallbackActionForTxn(String txnId) {
+    try {
+      PayPal payPalObj = payPalService.loadPayPalObject(txnId);
+      executeCallbackAction(convertToMap(payPalObj.getOrigMessage()));
+      return true;
+    } catch (XWikiException exp) {
+      LOGGER.error("Failed to load/create paypal object.", exp);
+    }
+    return false;
+  }
+
   @SuppressWarnings("unchecked")
-  private void executeCallbackAction() {
+  private void executeCallbackAction(Map parameterMap) {
     Map<String, String[]> data = new HashMap<String, String[]>();
-    data.putAll(getContext().getRequest().getParameterMap());
-    String customValue = getRequestParam("custom");
-    if ((customValue != null) && (!"".equals(customValue))) {
-      //shoppingCartDoc.fullName;$user
-      String[] customValueSplit = customValue.split(";");
-      if (customValueSplit.length > 1) {
-        String cartDocFN = customValueSplit[0];
-        String user = customValue.split(";")[1];
-        data.put("cartUser", new String[] { user });
-        getContext().setUser(user);
-        try {
-          XWikiDocument userDoc = getContext().getWiki().getDocument(
-              webUtils.resolveDocumentReference(user), getContext());
-          BaseObject userObj = userDoc.getXObject(new DocumentReference(
-              getContext().getDatabase(), "XWiki", "XWikiUsers"));
-          data.put("userEmail", new String[] { userObj.getStringValue("email") });
-        } catch (XWikiException exp) {
-          LOGGER.error("Failed to get userdoc for [" + user + "]. Possibly failing to"
-              + " send any callback emails.", exp);
+    data.putAll(parameterMap);
+    if (parameterMap.containsKey("custom")) {
+      String customValue = data.get("custom")[0];
+      if ((customValue != null) && (!"".equals(customValue))) {
+        //shoppingCartDoc.fullName;$user
+        String[] customValueSplit = customValue.split(";");
+        if (customValueSplit.length > 1) {
+          String cartDocFN = customValueSplit[0];
+          String user = customValue.split(";")[1];
+          data.put("cartUser", new String[] { user });
+          getContext().setUser(user);
+          try {
+            XWikiDocument userDoc = getContext().getWiki().getDocument(
+                webUtils.resolveDocumentReference(user), getContext());
+            BaseObject userObj = userDoc.getXObject(new DocumentReference(
+                getContext().getDatabase(), "XWiki", "XWikiUsers"));
+            data.put("userEmail", new String[] { userObj.getStringValue("email") });
+          } catch (XWikiException exp) {
+            LOGGER.error("Failed to get userdoc for [" + user + "]. Possibly failing to"
+                + " send any callback emails.", exp);
+          }
+          data.put("cartDocFN", new String[] { cartDocFN });
+        } else {
+          LOGGER.warn("illegal custom value [" + customValue + "] found."
+              + " Failed to reconstruct cart payed.");
         }
-        data.put("cartDocFN", new String[] { cartDocFN });
       } else {
-        LOGGER.warn("illegal custom value [" + customValue + "] found."
-            + " Failed to reconstruct cart payed.");
+        LOGGER.warn("no custom value found to reconstruct cart payed.");
       }
-    } else {
-      LOGGER.warn("no custom value found to reconstruct cart payed.");
     }
     paymentService.executePaymentAction(data);
   }
@@ -186,6 +199,20 @@ public class PayPalScriptService implements ScriptService {
       valueStr = Arrays.deepToString(values);
     }
     stringBuffer.append(key + "=" + valueStr + "\n");
+  }
+
+  private Map<String, String[]> convertToMap(String origMessage) {
+    Map<String, String[]> paramMap = new HashMap<String, String[]>();
+    for (String line : origMessage.split("\n")) {
+      String[] pair = line.split("=");
+      String value = "";
+      if (pair.length > 1) {
+        value = pair[1];
+      }
+      String[] params = new String[] {value};
+      paramMap.put(pair[0], params);
+    }
+    return paramMap;
   }
 
 }
