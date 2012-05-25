@@ -98,7 +98,7 @@ public class PayPalScriptService implements ScriptService {
   }
 
   @SuppressWarnings("unchecked")
-  private void executeCallbackAction(Map parameterMap) {
+  public void executeCallbackAction(Map parameterMap) {
     Map<String, String[]> data = new HashMap<String, String[]>();
     data.putAll(parameterMap);
     if (parameterMap.containsKey("custom")) {
@@ -108,7 +108,7 @@ public class PayPalScriptService implements ScriptService {
         String[] customValueSplit = customValue.split(";");
         if (customValueSplit.length > 1) {
           String cartDocFN = customValueSplit[0];
-          String user = customValue.split(";")[1];
+          String user = customValueSplit[1];
           data.put("cartUser", new String[] { user });
           getContext().setUser(user);
           try {
