@@ -55,9 +55,9 @@
     <property name="txn_type" type="string">
       <column name="CPPP_TXN_TYPE" />
     </property>
-	  <property name="payment_date" type="timestamp">
-	    <column name="CPPP_PAYMENT_DATE" />
-	  </property>
+    <property name="payment_date" type="timestamp">
+      <column name="CPPP_PAYMENT_DATE" />
+    </property>
     <property name="origHeader" type="text">
       <column name="CPPP_ORIG_HEADER" />
     </property>
@@ -85,12 +85,77 @@
     <property name="invoice" type="string">
       <column name="CPPP_INVOICE" />
     </property>
-		<property name="processStatus" length="30">
+    <property name="processStatus" length="30">
       <column name="CPPP_PROCESS_STATUS" />
-			<type name="org.hibernate.type.EnumType">
-				<param name="enumClass">com.celements.payment.raw.EProcessStatus</param>
-				<param name="type">12</param>
-			</type>
+      <type name="org.hibernate.type.EnumType">
+        <param name="enumClass">com.celements.payment.raw.EProcessStatus</param>
+        <param name="type">12</param>
+      </type>
+    </property>
+  </class>
+
+  <class name="com.celements.payment.raw.PostFinance" table="cel_payment_postfinance">
+    <id name="txn_id" type="string" unsaved-value="undefined">
+      <column name="CPPF_TXN_ID" not-null="true" />
+      <generator class="assigned" />
+    </id>
+    <property name="paymentMethod" type="string">
+      <column name="CPPF_PAYMENT_METHOD" />
+    </property>
+    <property name="trxDate" type="timestamp">
+      <column name="CPPF_TRX_DATE" />
+    </property>
+    <property name="origHeader" type="text">
+      <column name="CPPF_ORIG_HEADER" />
+    </property>
+    <property name="origMessage" type="text">
+      <column name="CPPF_ORIG_MESSAGE" />
+    </property>
+    <property name="payId" type="string">
+      <column name="CPPF_PAY_ID" />
+    </property>
+    <property name="cardNumber" type="string">
+      <column name="CPPF_CARD_NUMBER" />
+    </property>
+    <property name="expDate" type="string">
+      <column name="CPPF_EXP_DATE" />
+    </property>
+    <property name="clientIP" type="string">
+      <column name="CPPF_CLIENT_IP" />
+    </property>
+    <property name="cardholder" type="string">
+      <column name="CPPF_CARDHOLDER" />
+    </property>
+    <property name="cardbrand" type="string">
+      <column name="CPPF_CARDBRAND" />
+    </property>
+    <property name="acceptance" type="string">
+      <column name="CPPF_ACCEPTANCE" />
+    </property>
+    <property name="paymentStatus" type="string">
+      <column name="CPPF_PAYMENT_STATUS" />
+    </property>
+    <property name="ncError" type="string">
+      <column name="CPPF_NC_ERROR" />
+    </property>
+    <property name="currency" type="string">
+      <column name="CPPF_CURRENCY" />
+    </property>
+    <property name="amount" type="string">
+      <column name="CPPF_AMOUNT" />
+    </property>
+    <property name="shasign" type="string">
+      <column name="CPPF_SHA_SIGN" />
+    </property>
+    <property name="orderId" type="string">
+      <column name="CPPF_ORDERID" />
+    </property>
+    <property name="processStatus" length="30">
+      <column name="CPPF_PROCESS_STATUS" />
+      <type name="org.hibernate.type.EnumType">
+        <param name="enumClass">com.celements.payment.raw.EProcessStatus</param>
+        <param name="type">12</param>
+      </type>
     </property>
   </class>
 
