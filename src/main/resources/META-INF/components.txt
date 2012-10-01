@@ -1,3 +1,5 @@
 com.celements.payment.service.PayPalService
 com.celements.payment.service.PayPalScriptService
 com.celements.payment.PaymentService
+com.celements.payment.service.PostFinanceService
+com.celements.payment.service.PostFinanceScriptService
