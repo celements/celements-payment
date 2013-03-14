@@ -30,6 +30,12 @@
     <column name="CPH_ID" not-null="true" />
     <generator class="assigned" />
   </id>
+  <property name="raw_ref" type="string">
+    <column name="CPH_RAW_REF" />
+  </property>
+  <property name="timestamp" type="timestamp">
+    <column name="CPH_TIMESTAMP" />
+  </property>
   <property name="amount" type="integer">
     <column name="CPH_AMOUNT" />
   </property>
@@ -44,6 +50,33 @@
   </property>
   <property name="paymentStatus" type="string">
     <column name="CPH_PAYMENT_STATUS" />
+  </property>
+  <property name="payment_method" type="string">
+    <column name="CPH_PAYMENT_METHOD" />
+  </property>
+  <property name="title" type="string">
+    <column name="CPH_TITLE" />
+  </property>
+  <property name="first_name" type="string">
+    <column name="CPH_FIRST_NAME" />
+  </property>
+  <property name="last_name" type="string">
+    <column name="CPH_LAST_NAME" />
+  </property>
+  <property name="address" type="string">
+    <column name="CPH_ADDRESS" />
+  </property>
+  <property name="zip" type="string">
+    <column name="CPH_ZIP" />
+  </property>
+  <property name="city" type="string">
+    <column name="CPH_CITY" />
+  </property>
+  <property name="country" type="string">
+    <column name="CPH_COUNTRY" />
+  </property>
+  <property name="email" type="string">
+    <column name="CPH_EMAIL" />
   </property>
   </class>
 
