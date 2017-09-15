@@ -18,8 +18,7 @@ public class ComputopServiceTest extends AbstractComponentTest {
       "Blowfish");
   private static String DEFAULT_PLAIN_TEXT = "Unencrypted plain text!";
   private static int DEFAULT_PLAIN_TEXT_LENGTH = DEFAULT_PLAIN_TEXT.length();
-  private static String DEFAULT_ENCODED_START = "4105AAFDC6445BF2";
-  private static String DEFAULT_ENCODED = "4105AAFDC6445BF2EB8242371136F4886413347EEB8731B9";
+  private static String DEFAULT_ENCODED = "4105aafdc6445bf2eb8242371136f488a4812b38a821e753";
 
   private ComputopService computopSrv;
 
@@ -30,8 +29,8 @@ public class ComputopServiceTest extends AbstractComponentTest {
 
   @Test
   public void testBlowfishEncrypt() {
-    assertTrue(computopSrv.encryptString(DEFAULT_PLAIN_TEXT.getBytes(), DEFAULT_KEY).startsWith(
-        DEFAULT_ENCODED_START));
+    assertEquals(DEFAULT_ENCODED.toUpperCase(), computopSrv.encryptString(
+        DEFAULT_PLAIN_TEXT.getBytes(), DEFAULT_KEY));
   }
 
   @Test

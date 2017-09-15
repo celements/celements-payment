@@ -17,15 +17,15 @@ import org.slf4j.LoggerFactory;
 import org.xwiki.component.annotation.Component;
 
 import com.google.common.base.Preconditions;
+import com.google.common.io.BaseEncoding;
 
 @Component
 public class ComputopService implements ComputopServiceRole {
 
   private static Logger LOGGER = LoggerFactory.getLogger(ComputopService.class);
 
-  private static final char hexTab[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B',
-      'C', 'D', 'E', 'F' };
   private static final String BLOWFISH = "Blowfish";
+  private static final String BLOWFISH_ECB = BLOWFISH + "/ECB/PKCS5Padding";
 
   public static final String FORM_INPUT_NAME_LENGTH = "Len";
   public static final String FORM_INPUT_NAME_DATA = "Data";
@@ -63,73 +63,35 @@ public class ComputopService implements ComputopServiceRole {
 
   String encryptString(byte[] plainText, SecretKey key) {
     try {
-      return hexEncode(getCipher(Cipher.ENCRYPT_MODE, key).doFinal(plainText));
+      return BaseEncoding.base16().encode(getCipher(Cipher.ENCRYPT_MODE, key).doFinal(plainText));
     } catch (IllegalBlockSizeException | BadPaddingException | NoSuchPaddingException excp) {
       LOGGER.error("Problem while encrypting payment data", excp);
     }
     return null;
   }
 
-  String hexEncode(byte[] cipherText) {
-    int textLength = cipherText.length;
-    StringBuffer encodedText = new StringBuffer(textLength * 2);
-    for (byte c : cipherText) {
-      encodedText.append(hexTab[(c >> 4) & 0x0F]);
-      encodedText.append(hexTab[c & 0x0F]);
-    }
-    return encodedText.toString();
-  }
-
-  byte[] decryptString(String encryptedText, int plainTextLength, SecretKey key) {
+  byte[] decryptString(String encryptedBase16, int plainTextLength, SecretKey key) {
     try {
-      byte[] decodedCipher = hexDecode(encryptedText);
-      System.out.println("cipher length: [" + decodedCipher.length + "] plain [" + plainTextLength
-          + "]");
-      byte[] deciphered = getCipher(Cipher.DECRYPT_MODE, key).doFinal(decodedCipher);
-      return deciphered;
+      byte[] decodedCipher = BaseEncoding.base16().decode(encryptedBase16.toUpperCase());
+      System.out.println("cipher [" + encryptedBase16 + "] length: [" + decodedCipher.length
+          + "] plain [" + plainTextLength + "]");
+      Cipher cipher = getCipher(Cipher.DECRYPT_MODE, key);
+      return cipher.doFinal(decodedCipher);
     } catch (IllegalBlockSizeException | BadPaddingException | NoSuchPaddingException excp) {
       LOGGER.error("Problem while decrypting Computop callback", excp);
     }
     return null;
   }
 
-  byte[] hexDecode(String callbackText) throws IllegalArgumentException {
-    int length = callbackText.length();
-    Preconditions.checkArgument((length % 2) == 0);
-    byte[] cypherText = new byte[length / 2];
-    byte byte1;
-    byte byte2;
-    int decodedByteIndex = 0;
-    for (int i = 0; i < length; i += 2) {
-      byte1 = hexDecodeByte((byte) callbackText.charAt(i));
-      byte2 = hexDecodeByte((byte) callbackText.charAt(i + 1));
-      cypherText[decodedByteIndex] = ((byte) (((byte1 * 16) + byte2) & 0x00ff));
-      decodedByteIndex++;
-    }
-    System.out.println(cypherText.length);
-    return cypherText;
-  }
-
-  byte hexDecodeByte(byte b) {
-    b -= 48;
-    if (b > 9) {
-      b -= 7;
-      if (b > 15) {
-        b -= 32;
-      }
-    }
-    return b;
-  }
-
   Cipher getCipher(int cipherMode, SecretKey key) throws NoSuchPaddingException {
     try {
-      Cipher cipher = Cipher.getInstance(BLOWFISH);
+      Cipher cipher = Cipher.getInstance(BLOWFISH_ECB);
       cipher.init(cipherMode, key);
       return cipher;
     } catch (NoSuchAlgorithmException e) {
-      LOGGER.error("{} algorithm not availabe", BLOWFISH);
+      LOGGER.error("{} algorithm not availabe", BLOWFISH_ECB);
     } catch (InvalidKeyException e) {
-      LOGGER.error("SecretKey invalid for {} encryption", BLOWFISH);
+      LOGGER.error("SecretKey invalid for {} encryption", BLOWFISH_ECB);
     }
     return null;
   }
