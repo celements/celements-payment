@@ -26,7 +26,7 @@ import org.xwiki.component.annotation.Component;
 import org.xwiki.component.annotation.Requirement;
 import org.xwiki.script.service.ScriptService;
 
-@Component
+@Component("computop")
 public class ComputopScriptService implements ScriptService {
 
   @Requirement
