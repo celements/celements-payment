@@ -21,6 +21,7 @@ package com.celements.payment.service;
  */
 
 import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Strings.*;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -37,7 +38,6 @@ import org.xwiki.component.annotation.Component;
 import org.xwiki.component.annotation.Requirement;
 import org.xwiki.configuration.ConfigurationSource;
 
-import com.google.common.base.Optional;
 import com.google.common.io.BaseEncoding;
 
 @Component
@@ -55,9 +55,8 @@ public class ComputopService implements ComputopServiceRole {
   public boolean isCallbackHashValid(String hash, String payId, String transId, String merchantId,
       String status, String code) {
     checkNotNull(hash);
-    if (!hash.toLowerCase().equals(hashPaymentData(nullStringToEmpty(payId) + "*"
-        + nullStringToEmpty(transId) + "*" + nullStringToEmpty(merchantId) + "*"
-        + nullStringToEmpty(status) + "*" + nullStringToEmpty(code)))) {
+    if (!hash.toLowerCase().equals(hashPaymentData(nullToEmpty(payId) + "*" + nullToEmpty(transId)
+        + "*" + nullToEmpty(merchantId) + "*" + nullToEmpty(status) + "*" + nullToEmpty(code)))) {
       LOGGER.warn("Verifying hash [{}] failed with data payId [{}], transId [{}], merchantId [{}], "
           + "status [{}], code [{}]", hash, payId, transId, merchantId, status, code);
       return false;
@@ -68,13 +67,8 @@ public class ComputopService implements ComputopServiceRole {
   @Override
   public String getPaymentDataHmac(String payId, String transId, String merchantId,
       BigDecimal amount, String currency) {
-    return hashPaymentData(nullStringToEmpty(payId) + "*" + nullStringToEmpty(transId) + "*"
-        + nullStringToEmpty(merchantId) + "*" + getAmount(amount) + "*" + nullStringToEmpty(
-            currency));
-  }
-
-  private String nullStringToEmpty(String payId) {
-    return Optional.fromNullable(payId).or("");
+    return hashPaymentData(nullToEmpty(payId) + "*" + nullToEmpty(transId) + "*" + nullToEmpty(
+        merchantId) + "*" + getAmount(amount) + "*" + nullToEmpty(currency));
   }
 
   String getAmount(BigDecimal amount) {
