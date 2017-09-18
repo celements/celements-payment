@@ -73,15 +73,39 @@ public interface ComputopServiceRole {
       @Nullable String code);
 
   /**
-   * @param paymentData
-   * @return
+   * Returns a map with the form parameters 'Len' and 'Data' to transmit to computop when checking
+   * out. The 'data' map entry contains the encrypted version of the following fields:
+   * - MerchantID
+   * - TransID
+   * - Amount
+   * - Currency
+   * - URLSuccess
+   * - URLFailure
+   * - URLNotify
+   *
+   * @param transactionId
+   *          Identification of the payment / cart
+   * @param amount
+   *          Amount to be payed
+   * @param currency
+   *          Currency of the amount (default 'CHF')
+   * @return Map containing 'Len' and 'Data' parameters to be transmitted with checkout form
    */
-  public @NotNull Map<String, String> encryptPaymentData(@NotNull String paymentData);
+  public @NotNull Map<String, String> encryptPaymentData(@NotNull String transactionId,
+      @NotNull BigDecimal amount, @Nullable String currency);
 
   /**
+   * Deciphers callback data and returns all contained data in a map.
+   * Attention:
+   * - All the map key names are lower case. (Computop asks in their documentation to ignore case)
+   * - The content of the map can change if Computop adds or removes parameters from their callback.
+   *
    * @param encryptedCallback
+   *          Encrypted data string received as callback for a Computop payment
    * @param plainDataLength
-   * @return
+   *          The length of the unencrypted data
+   * @return Map containing all parameters received in a Computop payment callback. Keys in lower
+   *         case
    */
   public @NotNull Map<String, String> decryptCallbackData(@NotNull String encryptedCallback,
       int plainDataLength);
