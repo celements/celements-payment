@@ -37,5 +37,4 @@ public class ComputopScriptService implements ScriptService {
       @NotNull String code) {
     return computopService.isCallbackHashValid(hash, payId, transId, merchantId, status, code);
   }
-
 }
