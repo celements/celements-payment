@@ -40,15 +40,14 @@ import com.xpn.xwiki.web.Utils;
 public class ComputopServiceTest extends AbstractComponentTest {
 
   private static final String DEFAULT_HMAC_TEST_KEY = "ComputopSecretHmacKey!";
-  private static final String DEFAULT_EXAMPLE_PLAIN_TEXT = "She sells sea shells by the sea shore.";
-  private static final String DEFAULT_EXAMPLE_HASHED = "5d286cc2c516e86470098ef7da266294fec3897035ba74da1ddcc60bd5732701";
+  private static final String DEFAULT_HMAC_EXAMPLE_PLAIN_TEXT = "She sells sea shells by the sea shore.";
+  private static final String DEFAULT_HMAC_EXAMPLE_HASHED = "5d286cc2c516e86470098ef7da266294fec3897035ba74da1ddcc60bd5732701";
 
-  // Default key, plain- and encrypted-text. Encrypted using the Computop example implementation.
-  private static SecretKey DEFAULT_KEY = new SecretKeySpec("16CharKeyLength!".getBytes(),
-      "Blowfish");
-  private static String DEFAULT_PLAIN_TEXT = "Unencrypted plain text!";
-  private static int DEFAULT_PLAIN_TEXT_LENGTH = DEFAULT_PLAIN_TEXT.length();
-  private static String DEFAULT_ENCODED = "4105aafdc6445bf2eb8242371136f488a4812b38a821e753";
+  private static final SecretKey DEFAULT_BLOWFISH_KEY = new SecretKeySpec(
+      "16CharKeyLength!".getBytes(), ComputopService.BLOWFISH);
+  private static final String DEFAULT_BLOWFISH_PLAIN_TEXT = "Unencrypted plain text!";
+  private static final int DEFAULT_BLOWFISH_PLAIN_TEXT_LENGTH = DEFAULT_BLOWFISH_PLAIN_TEXT.length();
+  private static final String DEFAULT_BLOWFISH_ENCODED = "4105aafdc6445bf2eb8242371136f488a4812b38a821e753";
 
   private ComputopService service;
   private ConfigurationSource configSrcMock;
@@ -72,7 +71,8 @@ public class ComputopServiceTest extends AbstractComponentTest {
     expect(configSrcMock.getProperty(eq(ComputopService.HMAC_SECRET_KEY_PROP), eq(""))).andReturn(
         DEFAULT_HMAC_TEST_KEY);
     replayDefault();
-    assertEquals(DEFAULT_EXAMPLE_HASHED, service.hashPaymentData(DEFAULT_EXAMPLE_PLAIN_TEXT));
+    assertEquals(DEFAULT_HMAC_EXAMPLE_HASHED, service.hashPaymentData(
+        DEFAULT_HMAC_EXAMPLE_PLAIN_TEXT));
     verifyDefault();
   }
 
@@ -122,21 +122,22 @@ public class ComputopServiceTest extends AbstractComponentTest {
 
   @Test
   public void testBlowfishEncrypt() {
-    assertEquals(DEFAULT_ENCODED.toUpperCase(), service.encryptString(DEFAULT_PLAIN_TEXT.getBytes(),
-        DEFAULT_KEY));
+    assertEquals(DEFAULT_BLOWFISH_ENCODED.toUpperCase(), service.encryptString(
+        DEFAULT_BLOWFISH_PLAIN_TEXT.getBytes(), DEFAULT_BLOWFISH_KEY));
   }
 
   @Test
   public void testBlowfishDecrypt() {
-    assertEquals(DEFAULT_PLAIN_TEXT, new String(service.decryptString(DEFAULT_ENCODED,
-        DEFAULT_PLAIN_TEXT_LENGTH, DEFAULT_KEY)));
+    assertEquals(DEFAULT_BLOWFISH_PLAIN_TEXT, new String(service.decryptString(
+        DEFAULT_BLOWFISH_ENCODED, DEFAULT_BLOWFISH_PLAIN_TEXT_LENGTH, DEFAULT_BLOWFISH_KEY)));
   }
 
   @Test
   public void testBlowfishEncryptDecryptCycle() {
-    String encrypted = service.encryptString(DEFAULT_PLAIN_TEXT.getBytes(), DEFAULT_KEY);
-    assertEquals(DEFAULT_PLAIN_TEXT, new String(service.decryptString(encrypted,
-        DEFAULT_PLAIN_TEXT_LENGTH, DEFAULT_KEY)));
+    String encrypted = service.encryptString(DEFAULT_BLOWFISH_PLAIN_TEXT.getBytes(),
+        DEFAULT_BLOWFISH_KEY);
+    assertEquals(DEFAULT_BLOWFISH_PLAIN_TEXT, new String(service.decryptString(encrypted,
+        DEFAULT_BLOWFISH_PLAIN_TEXT_LENGTH, DEFAULT_BLOWFISH_KEY)));
   }
 
 }

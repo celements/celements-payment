@@ -45,7 +45,7 @@ import org.xwiki.component.annotation.Component;
 import org.xwiki.component.annotation.Requirement;
 import org.xwiki.configuration.ConfigurationSource;
 
-import com.google.common.base.Preconditions;
+import com.google.common.base.Optional;
 import com.google.common.io.BaseEncoding;
 
 @Component
@@ -55,12 +55,31 @@ public class ComputopService implements ComputopServiceRole {
 
   public static final String FORM_INPUT_NAME_LENGTH = "Len";
   public static final String FORM_INPUT_NAME_DATA = "Data";
+  public static final String DEFAULT_CURRENCY = "CHF";
+
+  static final String MERCHANT_ID_PROP = "computop_merchant_id";
 
   static final String BLOWFISH = "Blowfish";
   static final String BLOWFISH_ECB = BLOWFISH + "/ECB/PKCS5Padding";
+  static final String BLOWFISH_SECRET_KEY_PROP = "computop_blowfish_secret_key";
 
   static final String HMAC_SHA256 = "HmacSHA256";
   static final String HMAC_SECRET_KEY_PROP = "computop_hmac_secret_key";
+
+  private enum ReturnUrl {
+    SUCCESS("computop_return_url_success"), FAILURE("computop_return_url_failure"), CALLBACK(
+        "computop_return_url_callback");
+
+    private final String value;
+
+    private ReturnUrl(String value) {
+      this.value = value;
+    }
+
+    public String getValue() {
+      return value;
+    }
+  }
 
   @Requirement
   ConfigurationSource configSrc;
@@ -106,16 +125,13 @@ public class ComputopService implements ComputopServiceRole {
     return "";
   }
 
-  byte[] getHmacKey() {
-    return configSrc.getProperty(HMAC_SECRET_KEY_PROP, "").getBytes();
-  }
-
   @Override
-  public Map<String, String> encryptPaymentData(String paymentData) {
-    Preconditions.checkNotNull(paymentData);
+  public Map<String, String> encryptPaymentData(String transactionId, BigDecimal amount,
+      String currency) {
+    String dataPlainText = getPaymentDataPlainString(transactionId, amount, currency);
     Map<String, String> encryptedData = new HashMap<>();
-    encryptedData.put(FORM_INPUT_NAME_LENGTH, Integer.toString(paymentData.length()));
-    String encyrptedData = encryptString(paymentData.getBytes(), getKey());
+    encryptedData.put(FORM_INPUT_NAME_LENGTH, Integer.toString(dataPlainText.length()));
+    String encyrptedData = encryptString(dataPlainText.getBytes(), getBlowfishKey());
     if (encyrptedData != null) {
       encryptedData.put(FORM_INPUT_NAME_DATA, encyrptedData);
     }
@@ -124,8 +140,8 @@ public class ComputopService implements ComputopServiceRole {
 
   @Override
   public Map<String, String> decryptCallbackData(String encryptedCallback, int plainDataLength) {
-    Preconditions.checkNotNull(encryptedCallback);
-    byte[] decryptedData = decryptString(encryptedCallback, plainDataLength, getKey());
+    checkNotNull(encryptedCallback);
+    byte[] decryptedData = decryptString(encryptedCallback, plainDataLength, getBlowfishKey());
     Map<String, String> callbackData = new HashMap<>();
     if (decryptedData != null) {
       for (String parameter : (new String(decryptedData)).split("&")) {
@@ -139,6 +155,24 @@ public class ComputopService implements ComputopServiceRole {
       }
     }
     return callbackData;
+  }
+
+  String getPaymentDataPlainString(String transactionId, BigDecimal amount, String currency) {
+    checkNotNull(transactionId);
+    checkNotNull(amount);
+    currency = Optional.fromNullable(currency).or(DEFAULT_CURRENCY);
+    String merchantId = getMerchantId();
+    StringBuilder sb = new StringBuilder();
+    sb.append("MerchantID=").append(merchantId);
+    sb.append("&TransID=").append(transactionId);
+    sb.append("&Amount=").append(getAmount(amount));
+    sb.append("&Currency=").append(currency);
+    sb.append("&MAC=").append(getPaymentDataHmac(null, transactionId, merchantId, amount,
+        currency));
+    sb.append("&URLSuccess=").append(getReturnUrl(ReturnUrl.SUCCESS));
+    sb.append("&URLFailure=").append(getReturnUrl(ReturnUrl.FAILURE));
+    sb.append("&URLNotify=").append(getReturnUrl(ReturnUrl.CALLBACK));
+    return sb.toString();
   }
 
   String encryptString(byte[] plainText, SecretKey key) {
@@ -176,8 +210,21 @@ public class ComputopService implements ComputopServiceRole {
     return null;
   }
 
-  SecretKey getKey() {
-    return new SecretKeySpec("1234567890123456".getBytes(), BLOWFISH);
+  byte[] getHmacKey() {
+    return configSrc.getProperty(HMAC_SECRET_KEY_PROP, "").getBytes();
+  }
+
+  SecretKey getBlowfishKey() {
+    String secretKey = configSrc.getProperty(BLOWFISH_SECRET_KEY_PROP, "");
+    return new SecretKeySpec(secretKey.getBytes(), BLOWFISH);
+  }
+
+  String getMerchantId() {
+    return configSrc.getProperty(MERCHANT_ID_PROP, "");
+  }
+
+  String getReturnUrl(ReturnUrl urlType) {
+    return configSrc.getProperty(urlType.getValue(), "");
   }
 
 }
