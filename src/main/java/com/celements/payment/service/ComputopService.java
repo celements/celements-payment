@@ -56,6 +56,11 @@ public class ComputopService implements ComputopServiceRole {
 
   public static final String FORM_INPUT_NAME_LENGTH = "Len";
   public static final String FORM_INPUT_NAME_DATA = "Data";
+  public static final String FORM_INPUT_NAME_MERCHANT_ID = "MerchantID";
+  public static final String FORM_INPUT_NAME_TRANS_ID = "TransID";
+  public static final String FORM_INPUT_NAME_AMOUNT = "Amount";
+  public static final String FORM_INPUT_NAME_CURRENCY = "Currency";
+  public static final String FORM_INPUT_NAME_HMAC = "MAC";
   public static final String DEFAULT_CURRENCY = "CHF";
 
   static final String MERCHANT_ID_PROP = "computop_merchant_id";
@@ -68,18 +73,24 @@ public class ComputopService implements ComputopServiceRole {
   static final String HMAC_SHA256 = "HmacSHA256";
   static final String HMAC_SECRET_KEY_PROP = "computop_hmac_secret_key";
 
-  private enum ReturnUrl {
-    SUCCESS("computop_return_url_success"), FAILURE("computop_return_url_failure"), CALLBACK(
-        "computop_return_url_callback");
+  enum ReturnUrl {
+    SUCCESS("computop_return_url_success", "URLSuccess"), FAILURE("computop_return_url_failure",
+        "URLFailure"), CALLBACK("computop_return_url_callback", "URLNotify");
 
     private final String value;
+    private final String param;
 
-    private ReturnUrl(String value) {
+    private ReturnUrl(String value, String param) {
       this.value = value;
+      this.param = param;
     }
 
     public String getValue() {
       return value;
+    }
+
+    public String getParamName() {
+      return param;
     }
   }
 
@@ -158,15 +169,18 @@ public class ComputopService implements ComputopServiceRole {
     currency = Optional.fromNullable(currency).or(DEFAULT_CURRENCY);
     String merchantId = getMerchantId();
     StringBuilder sb = new StringBuilder();
-    sb.append("MerchantID=").append(merchantId);
-    sb.append("&TransID=").append(transactionId);
-    sb.append("&Amount=").append(getAmount(amount));
-    sb.append("&Currency=").append(currency);
-    sb.append("&MAC=").append(getPaymentDataHmac(null, transactionId, merchantId, amount,
-        currency));
-    sb.append("&URLSuccess=").append(getReturnUrl(ReturnUrl.SUCCESS));
-    sb.append("&URLFailure=").append(getReturnUrl(ReturnUrl.FAILURE));
-    sb.append("&URLNotify=").append(getReturnUrl(ReturnUrl.CALLBACK));
+    sb.append(FORM_INPUT_NAME_MERCHANT_ID).append("=").append(merchantId);
+    sb.append("&").append(FORM_INPUT_NAME_TRANS_ID).append("=").append(transactionId);
+    sb.append("&").append(FORM_INPUT_NAME_AMOUNT).append("=").append(getAmount(amount));
+    sb.append("&").append(FORM_INPUT_NAME_CURRENCY).append("=").append(currency);
+    sb.append("&").append(FORM_INPUT_NAME_HMAC);
+    sb.append("=").append(getPaymentDataHmac(null, transactionId, merchantId, amount, currency));
+    sb.append("&").append(ReturnUrl.SUCCESS.getParamName());
+    sb.append("=").append(getReturnUrl(ReturnUrl.SUCCESS));
+    sb.append("&").append(ReturnUrl.FAILURE.getParamName());
+    sb.append("=").append(getReturnUrl(ReturnUrl.FAILURE));
+    sb.append("&").append(ReturnUrl.CALLBACK.getParamName());
+    sb.append("=").append(getReturnUrl(ReturnUrl.CALLBACK));
     return sb.toString();
   }
 

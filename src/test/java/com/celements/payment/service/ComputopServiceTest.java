@@ -21,10 +21,12 @@ package com.celements.payment.service;
  */
 
 import static com.celements.common.test.CelementsTestUtils.*;
+import static com.celements.payment.service.ComputopService.*;
 import static org.easymock.EasyMock.*;
 import static org.junit.Assert.*;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
@@ -35,6 +37,7 @@ import org.xwiki.component.manager.ComponentRepositoryException;
 import org.xwiki.configuration.ConfigurationSource;
 
 import com.celements.common.test.AbstractComponentTest;
+import com.celements.payment.service.ComputopService.ReturnUrl;
 import com.xpn.xwiki.web.Utils;
 
 public class ComputopServiceTest extends AbstractComponentTest {
@@ -44,7 +47,7 @@ public class ComputopServiceTest extends AbstractComponentTest {
   private static final String DEFAULT_HMAC_EXAMPLE_HASHED = "5d286cc2c516e86470098ef7da266294fec3897035ba74da1ddcc60bd5732701";
 
   private static final SecretKey DEFAULT_BLOWFISH_KEY = new SecretKeySpec(
-      "16CharKeyLength!".getBytes(), ComputopService.BLOWFISH);
+      "16CharKeyLength!".getBytes(), BLOWFISH);
   private static final String DEFAULT_BLOWFISH_PLAIN_TEXT = "Unencrypted plain text!";
   private static final int DEFAULT_BLOWFISH_PLAIN_TEXT_LENGTH = DEFAULT_BLOWFISH_PLAIN_TEXT.length();
   private static final String DEFAULT_BLOWFISH_MATCHING = "4105AAFDC6445BF2EB8242371136F488";
@@ -70,7 +73,7 @@ public class ComputopServiceTest extends AbstractComponentTest {
 
   @Test
   public void testHashPaymentData() {
-    expect(configSrcMock.getProperty(eq(ComputopService.HMAC_SECRET_KEY_PROP), eq(""))).andReturn(
+    expect(configSrcMock.getProperty(eq(HMAC_SECRET_KEY_PROP), eq(""))).andReturn(
         DEFAULT_HMAC_TEST_KEY);
     replayDefault();
     assertEquals(DEFAULT_HMAC_EXAMPLE_HASHED, service.hashPaymentData(
@@ -81,7 +84,7 @@ public class ComputopServiceTest extends AbstractComponentTest {
   @Test
   public void testGetPaymentDataHmac() {
     String paymentHmac = "1df273c64b4342265e92357f7f3fb1cdfbfbe3e3c89d2fb8d93c25411a1a2285";
-    expect(configSrcMock.getProperty(eq(ComputopService.HMAC_SECRET_KEY_PROP), eq(""))).andReturn(
+    expect(configSrcMock.getProperty(eq(HMAC_SECRET_KEY_PROP), eq(""))).andReturn(
         DEFAULT_HMAC_TEST_KEY);
     replayDefault();
     assertEquals(paymentHmac, service.getPaymentDataHmac("payId", "transId", "merchantId",
@@ -92,7 +95,7 @@ public class ComputopServiceTest extends AbstractComponentTest {
   @Test
   public void testGetPaymentDataHmac_nullField() {
     String paymentHmac = "0678abd0cbc568254ab4a4ecff7beae7a1d3398cc106e2df50f815820c489a87";
-    expect(configSrcMock.getProperty(eq(ComputopService.HMAC_SECRET_KEY_PROP), eq(""))).andReturn(
+    expect(configSrcMock.getProperty(eq(HMAC_SECRET_KEY_PROP), eq(""))).andReturn(
         DEFAULT_HMAC_TEST_KEY);
     replayDefault();
     assertEquals(paymentHmac, service.getPaymentDataHmac(null, "transId", "merchantId",
@@ -103,7 +106,7 @@ public class ComputopServiceTest extends AbstractComponentTest {
   @Test
   public void testIsCallbackHashValid_true() {
     String callbackHmac = "04b7e62d9b0fc4e024edf416317861707261351a71b5fb1f464e11ec2e5d161a";
-    expect(configSrcMock.getProperty(eq(ComputopService.HMAC_SECRET_KEY_PROP), eq(""))).andReturn(
+    expect(configSrcMock.getProperty(eq(HMAC_SECRET_KEY_PROP), eq(""))).andReturn(
         DEFAULT_HMAC_TEST_KEY);
     replayDefault();
     assertTrue(service.isCallbackHashValid(callbackHmac, "payId", "transId", "merchantId", "payed",
@@ -114,7 +117,7 @@ public class ComputopServiceTest extends AbstractComponentTest {
   @Test
   public void testIsCallbackHashValid_false() {
     String callbackHmac = "ffffe62d9b0fc4e024edf416317861707261351a71b5fb1f464e11ec2e5d161a";
-    expect(configSrcMock.getProperty(eq(ComputopService.HMAC_SECRET_KEY_PROP), eq(""))).andReturn(
+    expect(configSrcMock.getProperty(eq(HMAC_SECRET_KEY_PROP), eq(""))).andReturn(
         DEFAULT_HMAC_TEST_KEY);
     replayDefault();
     assertFalse(service.isCallbackHashValid(callbackHmac, "payId", "transId", "merchantId", "payed",
@@ -148,6 +151,36 @@ public class ComputopServiceTest extends AbstractComponentTest {
         DEFAULT_BLOWFISH_KEY);
     assertEquals(DEFAULT_BLOWFISH_PLAIN_TEXT, new String(service.decryptString(encrypted,
         DEFAULT_BLOWFISH_PLAIN_TEXT_LENGTH, DEFAULT_BLOWFISH_KEY)));
+  }
+
+  @Test
+  public void testGetPaymentDataPlainString() {
+    String merchantId = "merchant";
+    String transactionId = "tid";
+    BigDecimal amount = new BigDecimal(32.5);
+    String currency = "EUR";
+    String successUrl = "https://server/success";
+    String failureUrl = "https://server/failure";
+    String notifyUrl = "https://server/notify";
+    expect(configSrcMock.getProperty(eq(HMAC_SECRET_KEY_PROP), eq(""))).andReturn(
+        DEFAULT_HMAC_TEST_KEY).atLeastOnce();
+    expect(configSrcMock.getProperty(eq(MERCHANT_ID_PROP), eq(""))).andReturn(merchantId);
+    expect(configSrcMock.getProperty(eq(ReturnUrl.SUCCESS.getValue()), eq(""))).andReturn(
+        successUrl);
+    expect(configSrcMock.getProperty(eq(ReturnUrl.FAILURE.getValue()), eq(""))).andReturn(
+        failureUrl);
+    expect(configSrcMock.getProperty(eq(ReturnUrl.CALLBACK.getValue()), eq(""))).andReturn(
+        notifyUrl);
+    replayDefault();
+    String hmac = service.getPaymentDataHmac(null, transactionId, merchantId, amount, currency);
+    assertEquals(FORM_INPUT_NAME_MERCHANT_ID + "=" + merchantId + "&" + FORM_INPUT_NAME_TRANS_ID
+        + "=" + transactionId + "&" + FORM_INPUT_NAME_AMOUNT + "=" + amount.setScale(2,
+            RoundingMode.HALF_UP).toPlainString() + "&" + FORM_INPUT_NAME_CURRENCY + "=" + currency
+        + "&" + FORM_INPUT_NAME_HMAC + "=" + hmac + "&" + ReturnUrl.SUCCESS.getParamName() + "="
+        + successUrl + "&" + ReturnUrl.FAILURE.getParamName() + "=" + failureUrl + "&"
+        + ReturnUrl.CALLBACK.getParamName() + "=" + notifyUrl, service.getPaymentDataPlainString(
+            transactionId, amount, currency));
+    verifyDefault();
   }
 
 }
