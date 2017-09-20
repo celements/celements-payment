@@ -47,7 +47,9 @@ public class ComputopServiceTest extends AbstractComponentTest {
       "16CharKeyLength!".getBytes(), ComputopService.BLOWFISH);
   private static final String DEFAULT_BLOWFISH_PLAIN_TEXT = "Unencrypted plain text!";
   private static final int DEFAULT_BLOWFISH_PLAIN_TEXT_LENGTH = DEFAULT_BLOWFISH_PLAIN_TEXT.length();
-  private static final String DEFAULT_BLOWFISH_ENCODED = "4105aafdc6445bf2eb8242371136f488a4812b38a821e753";
+  private static final String DEFAULT_BLOWFISH_MATCHING = "4105AAFDC6445BF2EB8242371136F488";
+  private static final String DEFAULT_BLOWFISH_COMPUTOP_ENCODED = "4105AAFDC6445BF2EB8242371136F4886413347EEB8731B9";
+  private static final String DEFAULT_BLOWFISH_INTERNET_ENCODED = "4105aafdc6445bf2eb8242371136f488a4812b38a821e753";
 
   private ComputopService service;
   private ConfigurationSource configSrcMock;
@@ -122,14 +124,22 @@ public class ComputopServiceTest extends AbstractComponentTest {
 
   @Test
   public void testBlowfishEncrypt() {
-    assertEquals(DEFAULT_BLOWFISH_ENCODED.toUpperCase(), service.encryptString(
-        DEFAULT_BLOWFISH_PLAIN_TEXT.getBytes(), DEFAULT_BLOWFISH_KEY));
+    assertTrue(service.encryptString(DEFAULT_BLOWFISH_PLAIN_TEXT.getBytes(),
+        DEFAULT_BLOWFISH_KEY).startsWith(DEFAULT_BLOWFISH_MATCHING.toUpperCase()));
   }
 
   @Test
-  public void testBlowfishDecrypt() {
+  public void testBlowfishDecrypt_computopExampleImplementationEncrypted() {
     assertEquals(DEFAULT_BLOWFISH_PLAIN_TEXT, new String(service.decryptString(
-        DEFAULT_BLOWFISH_ENCODED, DEFAULT_BLOWFISH_PLAIN_TEXT_LENGTH, DEFAULT_BLOWFISH_KEY)));
+        DEFAULT_BLOWFISH_COMPUTOP_ENCODED, DEFAULT_BLOWFISH_PLAIN_TEXT_LENGTH,
+        DEFAULT_BLOWFISH_KEY)));
+  }
+
+  @Test
+  public void testBlowfishDecrypt_onlineToolEncrypted() {
+    assertEquals(DEFAULT_BLOWFISH_PLAIN_TEXT, new String(service.decryptString(
+        DEFAULT_BLOWFISH_INTERNET_ENCODED, DEFAULT_BLOWFISH_PLAIN_TEXT_LENGTH,
+        DEFAULT_BLOWFISH_KEY)));
   }
 
   @Test

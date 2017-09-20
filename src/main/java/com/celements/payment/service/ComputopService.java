@@ -27,6 +27,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -60,7 +61,8 @@ public class ComputopService implements ComputopServiceRole {
   static final String MERCHANT_ID_PROP = "computop_merchant_id";
 
   static final String BLOWFISH = "Blowfish";
-  static final String BLOWFISH_ECB = BLOWFISH + "/ECB/PKCS5Padding";
+  static final String BLOWFISH_ECB_PADDED = BLOWFISH + "/ECB/PKCS5Padding";
+  static final String BLOWFISH_ECB_UNPADDED = BLOWFISH + "/ECB/NoPadding";
   static final String BLOWFISH_SECRET_KEY_PROP = "computop_blowfish_secret_key";
 
   static final String HMAC_SHA256 = "HmacSHA256";
@@ -102,13 +104,6 @@ public class ComputopService implements ComputopServiceRole {
       BigDecimal amount, String currency) {
     return hashPaymentData(nullToEmpty(payId) + "*" + nullToEmpty(transId) + "*" + nullToEmpty(
         merchantId) + "*" + getAmount(amount) + "*" + nullToEmpty(currency));
-  }
-
-  String getAmount(BigDecimal amount) {
-    if (amount != null) {
-      return amount.setScale(2, RoundingMode.HALF_UP).toPlainString();
-    }
-    return "";
   }
 
   String hashPaymentData(@NotNull String paymentData) {
@@ -175,39 +170,48 @@ public class ComputopService implements ComputopServiceRole {
     return sb.toString();
   }
 
-  String encryptString(byte[] plainText, SecretKey key) {
+  String encryptString(byte[] plainText, final SecretKey key) {
     try {
-      return BaseEncoding.base16().encode(getCipher(Cipher.ENCRYPT_MODE, key).doFinal(plainText));
+      return BaseEncoding.base16().encode(getCipher(Cipher.ENCRYPT_MODE, BLOWFISH_ECB_PADDED,
+          key).doFinal(plainText));
     } catch (IllegalBlockSizeException | BadPaddingException | NoSuchPaddingException excp) {
       LOGGER.error("Problem while encrypting payment data", excp);
     }
     return null;
   }
 
-  byte[] decryptString(String encryptedBase16, int plainTextLength, SecretKey key) {
+  byte[] decryptString(String encryptedBase16, int plainTextLength, final SecretKey key) {
+    CharSequence cs = encryptedBase16.toUpperCase();
+    byte[] decodedCipher = BaseEncoding.base16().decode(cs);
     try {
-      byte[] decodedCipher = BaseEncoding.base16().decode(encryptedBase16.toUpperCase());
-      System.out.println("cipher [" + encryptedBase16 + "] length: [" + decodedCipher.length
-          + "] plain [" + plainTextLength + "]");
-      Cipher cipher = getCipher(Cipher.DECRYPT_MODE, key);
-      return cipher.doFinal(decodedCipher);
+      Cipher cipher = getCipher(Cipher.DECRYPT_MODE, BLOWFISH_ECB_UNPADDED, key);
+      byte[] deciphered = cipher.doFinal(decodedCipher);
+      return Arrays.copyOfRange(deciphered, 0, plainTextLength);
     } catch (IllegalBlockSizeException | BadPaddingException | NoSuchPaddingException excp) {
       LOGGER.error("Problem while decrypting Computop callback", excp);
     }
     return null;
   }
 
-  Cipher getCipher(int cipherMode, SecretKey key) throws NoSuchPaddingException {
+  Cipher getCipher(int cipherMode, final String algorithm, final SecretKey key)
+      throws NoSuchPaddingException {
     try {
-      Cipher cipher = Cipher.getInstance(BLOWFISH_ECB);
+      Cipher cipher = Cipher.getInstance(algorithm);
       cipher.init(cipherMode, key);
       return cipher;
     } catch (NoSuchAlgorithmException e) {
-      LOGGER.error("{} algorithm not availabe", BLOWFISH_ECB);
+      LOGGER.error("{} algorithm not availabe", algorithm);
     } catch (InvalidKeyException e) {
-      LOGGER.error("SecretKey invalid for {} encryption", BLOWFISH_ECB);
+      LOGGER.error("SecretKey invalid for {} encryption", algorithm);
     }
     return null;
+  }
+
+  String getAmount(BigDecimal amount) {
+    if (amount != null) {
+      return amount.setScale(2, RoundingMode.HALF_UP).toPlainString();
+    }
+    return "";
   }
 
   byte[] getHmacKey() {
