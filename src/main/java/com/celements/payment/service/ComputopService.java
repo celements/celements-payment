@@ -32,13 +32,19 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import javax.validation.constraints.NotNull;
 
+import org.apache.commons.lang.math.NumberUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xwiki.component.annotation.Component;
 import org.xwiki.component.annotation.Requirement;
 import org.xwiki.configuration.ConfigurationSource;
 
+import com.celements.model.context.ModelContext;
+import com.celements.payment.IPaymentService;
+import com.celements.payment.raw.Computop;
+import com.celements.payment.raw.EProcessStatus;
 import com.google.common.io.BaseEncoding;
+import com.xpn.xwiki.XWikiException;
 
 @Component
 public class ComputopService implements ComputopServiceRole {
@@ -49,7 +55,13 @@ public class ComputopService implements ComputopServiceRole {
   static final String HMAC_SECRET_KEY_PROP = "computop_hmac_secret_key";
 
   @Requirement
+  IPaymentService paymentService;
+
+  @Requirement
   ConfigurationSource configSrc;
+
+  @Requirement
+  ModelContext context;
 
   @Override
   public boolean isCallbackHashValid(String hash, String payId, String transId, String merchantId,
@@ -94,6 +106,32 @@ public class ComputopService implements ComputopServiceRole {
 
   byte[] getHmacKey() {
     return configSrc.getProperty(HMAC_SECRET_KEY_PROP, "").getBytes();
+  }
+
+  public void storeCallback() {
+    // TODO check for callback request
+    if (context.getRequest().isPresent()) {
+      LOGGER.info("received computop callback");
+      Computop computopObj = createComputopObjectFromRequest();
+      try {
+        paymentService.storePaymentObject(computopObj);
+        // FIXME move execution of callbackAction to general async processing of callback
+        // TODO execute callback action
+      } catch (XWikiException exp) {
+        LOGGER.error("Failed to store computop object", exp);
+      }
+    }
+  }
+
+  private Computop createComputopObjectFromRequest() {
+    Computop computopObj = new Computop();
+    computopObj.setOrigHeader(paymentService.serializeHeaderFromRequest());
+    computopObj.setOrigMessage(paymentService.serializeParameterMapFromRequest());
+    computopObj.setMerchantId(paymentService.getRequestParam("MerchantID"));
+    computopObj.setLength(NumberUtils.toInt(paymentService.getRequestParam("Length"), 0));
+    computopObj.setData(paymentService.getRequestParam("Data"));
+    computopObj.setProcessStatus(EProcessStatus.New);
+    return computopObj;
   }
 
 }
