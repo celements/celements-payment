@@ -27,10 +27,12 @@ import static org.junit.Assert.*;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.net.URLEncoder;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
+import org.apache.commons.codec.CharEncoding;
 import org.junit.Before;
 import org.junit.Test;
 import org.xwiki.component.manager.ComponentRepositoryException;
@@ -154,14 +156,18 @@ public class ComputopServiceTest extends AbstractComponentTest {
   }
 
   @Test
-  public void testGetPaymentDataPlainString() {
+  public void testGetPaymentDataPlainString() throws Exception {
     String merchantId = "merchant";
     String transactionId = "tid";
+    String orderDescription = "1.35 meter of kilogram per hour";
     BigDecimal amount = new BigDecimal(32.5);
     String currency = "EUR";
-    String successUrl = "https://server/success";
+    String successUrl = "https://server/success?test=x&a=b";
+    String successUrlEnc = URLEncoder.encode(successUrl, CharEncoding.UTF_8.toString());
     String failureUrl = "https://server/failure";
-    String notifyUrl = "https://server/notify";
+    String failureUrlEnc = URLEncoder.encode(failureUrl, CharEncoding.UTF_8.toString());
+    String notifyUrl = "https://server/notify?callback=1";
+    String notifyUrlEnc = URLEncoder.encode(notifyUrl, CharEncoding.UTF_8.toString());
     expect(configSrcMock.getProperty(eq(HMAC_SECRET_KEY_PROP), eq(""))).andReturn(
         DEFAULT_HMAC_TEST_KEY).atLeastOnce();
     expect(configSrcMock.getProperty(eq(MERCHANT_ID_PROP), eq(""))).andReturn(merchantId);
@@ -176,10 +182,11 @@ public class ComputopServiceTest extends AbstractComponentTest {
     assertEquals(FORM_INPUT_NAME_MERCHANT_ID + "=" + merchantId + "&" + FORM_INPUT_NAME_TRANS_ID
         + "=" + transactionId + "&" + FORM_INPUT_NAME_AMOUNT + "=" + amount.setScale(2,
             RoundingMode.HALF_UP).toPlainString() + "&" + FORM_INPUT_NAME_CURRENCY + "=" + currency
-        + "&" + FORM_INPUT_NAME_HMAC + "=" + hmac + "&" + ReturnUrl.SUCCESS.getParamName() + "="
-        + successUrl + "&" + ReturnUrl.FAILURE.getParamName() + "=" + failureUrl + "&"
-        + ReturnUrl.CALLBACK.getParamName() + "=" + notifyUrl, service.getPaymentDataPlainString(
-            transactionId, amount, currency));
+        + "&" + FORM_INPUT_NAME_DESCRIPTION + "=" + orderDescription + "&" + FORM_INPUT_NAME_HMAC
+        + "=" + hmac + "&" + ReturnUrl.SUCCESS.getParamName() + "=" + successUrlEnc + "&"
+        + ReturnUrl.FAILURE.getParamName() + "=" + failureUrlEnc + "&"
+        + ReturnUrl.CALLBACK.getParamName() + "=" + notifyUrlEnc, service.getPaymentDataPlainString(
+            transactionId, orderDescription, amount, currency));
     verifyDefault();
   }
 

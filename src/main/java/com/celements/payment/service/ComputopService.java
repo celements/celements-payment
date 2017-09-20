@@ -23,8 +23,10 @@ package com.celements.payment.service;
 import static com.google.common.base.Preconditions.*;
 import static com.google.common.base.Strings.*;
 
+import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.net.URLEncoder;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
@@ -40,6 +42,7 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import javax.validation.constraints.NotNull;
 
+import org.apache.commons.codec.CharEncoding;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xwiki.component.annotation.Component;
@@ -60,6 +63,7 @@ public class ComputopService implements ComputopServiceRole {
   public static final String FORM_INPUT_NAME_TRANS_ID = "TransID";
   public static final String FORM_INPUT_NAME_AMOUNT = "Amount";
   public static final String FORM_INPUT_NAME_CURRENCY = "Currency";
+  public static final String FORM_INPUT_NAME_DESCRIPTION = "OrderDesc";
   public static final String FORM_INPUT_NAME_HMAC = "MAC";
   public static final String DEFAULT_CURRENCY = "CHF";
 
@@ -132,9 +136,10 @@ public class ComputopService implements ComputopServiceRole {
   }
 
   @Override
-  public Map<String, String> encryptPaymentData(String transactionId, BigDecimal amount,
-      String currency) {
-    String dataPlainText = getPaymentDataPlainString(transactionId, amount, currency);
+  public Map<String, String> encryptPaymentData(String transactionId, String orderDescription,
+      BigDecimal amount, String currency) {
+    String dataPlainText = getPaymentDataPlainString(transactionId, orderDescription, amount,
+        currency);
     Map<String, String> encryptedData = new HashMap<>();
     encryptedData.put(FORM_INPUT_NAME_LENGTH, Integer.toString(dataPlainText.length()));
     String encyrptedData = encryptString(dataPlainText.getBytes(), getBlowfishKey());
@@ -163,7 +168,8 @@ public class ComputopService implements ComputopServiceRole {
     return callbackData;
   }
 
-  String getPaymentDataPlainString(String transactionId, BigDecimal amount, String currency) {
+  String getPaymentDataPlainString(String transactionId, String orderDescription, BigDecimal amount,
+      String currency) {
     checkNotNull(transactionId);
     checkNotNull(amount);
     currency = Optional.fromNullable(currency).or(DEFAULT_CURRENCY);
@@ -173,6 +179,7 @@ public class ComputopService implements ComputopServiceRole {
     sb.append("&").append(FORM_INPUT_NAME_TRANS_ID).append("=").append(transactionId);
     sb.append("&").append(FORM_INPUT_NAME_AMOUNT).append("=").append(getAmount(amount));
     sb.append("&").append(FORM_INPUT_NAME_CURRENCY).append("=").append(currency);
+    sb.append("&").append(FORM_INPUT_NAME_DESCRIPTION).append("=").append(orderDescription);
     sb.append("&").append(FORM_INPUT_NAME_HMAC);
     sb.append("=").append(getPaymentDataHmac(null, transactionId, merchantId, amount, currency));
     sb.append("&").append(ReturnUrl.SUCCESS.getParamName());
@@ -242,7 +249,13 @@ public class ComputopService implements ComputopServiceRole {
   }
 
   String getReturnUrl(ReturnUrl urlType) {
-    return configSrc.getProperty(urlType.getValue(), "");
+    try {
+      return URLEncoder.encode(configSrc.getProperty(urlType.getValue(), ""),
+          CharEncoding.UTF_8.toString());
+    } catch (UnsupportedEncodingException uee) {
+      LOGGER.error("{} encoding not available", CharEncoding.UTF_8.toString(), uee);
+    }
+    return "";
   }
 
 }

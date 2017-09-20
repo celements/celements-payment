@@ -85,6 +85,8 @@ public interface ComputopServiceRole {
    *
    * @param transactionId
    *          Identification of the payment / cart
+   * @param orderDescription
+   *          A text description of the order the payment belongs to
    * @param amount
    *          Amount to be payed
    * @param currency
@@ -92,7 +94,7 @@ public interface ComputopServiceRole {
    * @return Map containing 'Len' and 'Data' parameters to be transmitted with checkout form
    */
   public @NotNull Map<String, String> encryptPaymentData(@NotNull String transactionId,
-      @NotNull BigDecimal amount, @Nullable String currency);
+      @Nullable String orderDescription, @NotNull BigDecimal amount, @Nullable String currency);
 
   /**
    * Deciphers callback data and returns all contained data in a map.
