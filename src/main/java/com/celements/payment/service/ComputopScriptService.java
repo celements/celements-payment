@@ -1,5 +1,10 @@
 package com.celements.payment.service;
 
+import java.math.BigDecimal;
+import java.util.Map;
+
+import javax.annotation.Nullable;
+
 /*
  * See the NOTICE file distributed with this work for additional
  * information regarding copyright ownership.
@@ -36,5 +41,11 @@ public class ComputopScriptService implements ScriptService {
       @NotNull String transId, @NotNull String merchantId, @NotNull String status,
       @NotNull String code) {
     return computopService.isCallbackHashValid(hash, payId, transId, merchantId, status, code);
+  }
+
+  public @NotNull Map<String, String> encryptPaymentData(@NotNull String transactionId,
+      @Nullable String orderDescription, double amount, @Nullable String currency) {
+    return computopService.encryptPaymentData(transactionId, orderDescription, new BigDecimal(
+        amount), currency);
   }
 }
