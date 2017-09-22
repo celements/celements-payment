@@ -21,7 +21,7 @@ package com.celements.payment.service;
  */
 
 import static com.celements.common.test.CelementsTestUtils.*;
-import static com.celements.payment.service.ComputopService.*;
+import static com.celements.payment.service.ComputopServiceRole.*;
 import static org.easymock.EasyMock.*;
 import static org.junit.Assert.*;
 
@@ -37,7 +37,7 @@ import org.xwiki.component.manager.ComponentRepositoryException;
 import org.xwiki.configuration.ConfigurationSource;
 
 import com.celements.common.test.AbstractComponentTest;
-import com.celements.payment.service.ComputopService.ReturnUrl;
+import com.celements.payment.service.ComputopServiceRole.ReturnUrl;
 import com.xpn.xwiki.web.Utils;
 
 public class ComputopServiceTest extends AbstractComponentTest {

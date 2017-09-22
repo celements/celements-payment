@@ -1,5 +1,7 @@
 package com.celements.payment.service;
 
+import static com.celements.payment.service.ComputopServiceRole.*;
+
 import java.math.BigDecimal;
 import java.util.Map;
 
@@ -27,15 +29,54 @@ import javax.annotation.Nullable;
 
 import javax.validation.constraints.NotNull;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.xwiki.component.annotation.Component;
 import org.xwiki.component.annotation.Requirement;
 import org.xwiki.script.service.ScriptService;
 
+import com.celements.model.context.ModelContext;
+import com.google.common.base.Optional;
+import com.xpn.xwiki.web.XWikiRequest;
+
 @Component("computop")
 public class ComputopScriptService implements ScriptService {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(ComputopScriptService.class);
+
   @Requirement
   private ComputopServiceRole computopService;
+
+  @Requirement
+  private ModelContext modelContext;
+
+  /**
+   * Checks from request parameters if the callback HMAC is valid.
+   *
+   * @return true if the request contains a HMAC which is verifiable
+   */
+  public boolean isCallbackHashValid() {
+    Optional<XWikiRequest> request = modelContext.getRequest();
+    if (request.isPresent()) {
+      String hash = request.get().get(PAYER_RETURN_REQUEST_NAME_HMAC);
+      String payId = request.get().get(PAYER_RETURN_REQUEST_NAME_PAY_ID);
+      String transId = request.get().get(PAYER_RETURN_REQUEST_NAME_TRANS_ID);
+      String merchantId = request.get().get(PAYER_RETURN_REQUEST_NAME_MERCHANT_ID);
+      String status = request.get().get(PAYER_RETURN_REQUEST_NAME_STATUS);
+      String code = request.get().get(PAYER_RETURN_REQUEST_NAME_CODE);
+      if ((hash != null) && (payId != null) && (transId != null) && (merchantId != null)
+          && (status != null) && (code != null)) {
+        return isCallbackHashValid(hash, payId, transId, merchantId, status, code);
+      } else {
+        LOGGER.warn("isCallbackHashValid: missing parameter(s) to verify HMAC! {}=[{}], {}=[{}], "
+            + "{}=[{}], {}=[{}], {}=[{}], {}=[{}]", PAYER_RETURN_REQUEST_NAME_HMAC, hash,
+            PAYER_RETURN_REQUEST_NAME_PAY_ID, payId, PAYER_RETURN_REQUEST_NAME_TRANS_ID, transId,
+            PAYER_RETURN_REQUEST_NAME_MERCHANT_ID, merchantId, PAYER_RETURN_REQUEST_NAME_STATUS,
+            status, PAYER_RETURN_REQUEST_NAME_CODE, code);
+      }
+    }
+    return false;
+  }
 
   public boolean isCallbackHashValid(@NotNull String hash, @NotNull String payId,
       @NotNull String transId, @NotNull String merchantId, @NotNull String status,

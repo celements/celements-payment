@@ -54,47 +54,6 @@ public class ComputopService implements ComputopServiceRole {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ComputopService.class);
 
-  public static final String FORM_INPUT_NAME_LENGTH = "Len";
-  public static final String FORM_INPUT_NAME_DATA = "Data";
-  public static final String FORM_INPUT_NAME_MERCHANT_ID = "MerchantID";
-  public static final String FORM_INPUT_NAME_TRANS_ID = "TransID";
-  public static final String FORM_INPUT_NAME_AMOUNT = "Amount";
-  public static final String FORM_INPUT_NAME_CURRENCY = "Currency";
-  public static final String FORM_INPUT_NAME_DESCRIPTION = "OrderDesc";
-  public static final String FORM_INPUT_NAME_HMAC = "MAC";
-  public static final String DEFAULT_CURRENCY = "CHF";
-
-  static final String MERCHANT_ID_PROP = "computop_merchant_id";
-
-  static final String BLOWFISH = "Blowfish";
-  static final String BLOWFISH_ECB_PADDED = BLOWFISH + "/ECB/PKCS5Padding";
-  static final String BLOWFISH_ECB_UNPADDED = BLOWFISH + "/ECB/NoPadding";
-  static final String BLOWFISH_SECRET_KEY_PROP = "computop_blowfish_secret_key";
-
-  static final String HMAC_SHA256 = "HmacSHA256";
-  static final String HMAC_SECRET_KEY_PROP = "computop_hmac_secret_key";
-
-  enum ReturnUrl {
-    SUCCESS("computop_return_url_success", "URLSuccess"), FAILURE("computop_return_url_failure",
-        "URLFailure"), CALLBACK("computop_return_url_callback", "URLNotify");
-
-    private final String value;
-    private final String param;
-
-    private ReturnUrl(String value, String param) {
-      this.value = value;
-      this.param = param;
-    }
-
-    public String getValue() {
-      return value;
-    }
-
-    public String getParamName() {
-      return param;
-    }
-  }
-
   @Requirement
   ConfigurationSource configSrc;
 

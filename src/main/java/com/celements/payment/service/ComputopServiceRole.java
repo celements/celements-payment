@@ -31,6 +31,58 @@ import org.xwiki.component.annotation.ComponentRole;
 @ComponentRole
 public interface ComputopServiceRole {
 
+  public static final String FORM_INPUT_NAME_LENGTH = "Len";
+  public static final String FORM_INPUT_NAME_DATA = "Data";
+  public static final String FORM_INPUT_NAME_MERCHANT_ID = "MerchantID";
+  public static final String FORM_INPUT_NAME_TRANS_ID = "TransID";
+  public static final String FORM_INPUT_NAME_AMOUNT = "Amount";
+  public static final String FORM_INPUT_NAME_CURRENCY = "Currency";
+  public static final String FORM_INPUT_NAME_DESCRIPTION = "OrderDesc";
+  public static final String FORM_INPUT_NAME_HMAC = "MAC";
+
+  public static final String PAYER_RETURN_REQUEST_NAME_HMAC = "MAC";
+  public static final String PAYER_RETURN_REQUEST_NAME_PAY_ID = "PayID";
+  public static final String PAYER_RETURN_REQUEST_NAME_MERCHANT_ID = "mid";
+  public static final String PAYER_RETURN_REQUEST_NAME_TRANS_ID = "TransID";
+  public static final String PAYER_RETURN_REQUEST_NAME_STATUS = "Status";
+  public static final String PAYER_RETURN_REQUEST_NAME_CODE = "Code";
+  public static final String PAYER_RETURN_REQUEST_NAME_DESCRIPTION = "Description";
+  public static final String PAYER_RETURN_REQUEST_NAME_TYPE = "Type";
+  public static final String PAYER_RETURN_REQUEST_NAME_XID = "XID";
+
+  public static final String DEFAULT_CURRENCY = "CHF";
+
+  static final String MERCHANT_ID_PROP = "computop_merchant_id";
+
+  static final String BLOWFISH = "Blowfish";
+  static final String BLOWFISH_ECB_PADDED = BLOWFISH + "/ECB/PKCS5Padding";
+  static final String BLOWFISH_ECB_UNPADDED = BLOWFISH + "/ECB/NoPadding";
+  static final String BLOWFISH_SECRET_KEY_PROP = "computop_blowfish_secret_key";
+
+  static final String HMAC_SHA256 = "HmacSHA256";
+  static final String HMAC_SECRET_KEY_PROP = "computop_hmac_secret_key";
+
+  enum ReturnUrl {
+    SUCCESS("computop_return_url_success", "URLSuccess"), FAILURE("computop_return_url_failure",
+        "URLFailure"), CALLBACK("computop_return_url_callback", "URLNotify");
+
+    private final String value;
+    private final String param;
+
+    private ReturnUrl(String value, String param) {
+      this.value = value;
+      this.param = param;
+    }
+
+    public String getValue() {
+      return value;
+    }
+
+    public String getParamName() {
+      return param;
+    }
+  }
+
   /**
    * Hash Message Authentication Codes (HMAC) used in the MAC parameter when submitting a payment
    * form to Coputop
