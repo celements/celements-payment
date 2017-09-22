@@ -189,9 +189,12 @@ public class ComputopService implements ComputopServiceRole {
   }
 
   String encryptString(byte[] plainText, final SecretKey key) {
+    LOGGER.debug("encrypting plain [{}]", plainText);
     try {
-      return BaseEncoding.base16().encode(getCipher(Cipher.ENCRYPT_MODE, BLOWFISH_ECB_PADDED,
-          key).doFinal(plainText));
+      String cipherText = BaseEncoding.base16().encode(getCipher(Cipher.ENCRYPT_MODE,
+          BLOWFISH_ECB_PADDED, key).doFinal(plainText));
+      LOGGER.debug("encrypted cipher [{}]", cipherText);
+      return cipherText;
     } catch (IllegalBlockSizeException | BadPaddingException | NoSuchPaddingException excp) {
       LOGGER.error("Problem while encrypting payment data", excp);
     }
@@ -200,11 +203,13 @@ public class ComputopService implements ComputopServiceRole {
 
   byte[] decryptString(String encryptedBase16, int plainTextLength, final SecretKey key) {
     CharSequence cs = encryptedBase16.toUpperCase();
+    LOGGER.debug("decrypting cipher [{}]", cs);
     byte[] decodedCipher = BaseEncoding.base16().decode(cs);
     try {
       Cipher cipher = getCipher(Cipher.DECRYPT_MODE, BLOWFISH_ECB_UNPADDED, key);
-      byte[] deciphered = cipher.doFinal(decodedCipher);
-      return Arrays.copyOfRange(deciphered, 0, plainTextLength);
+      byte[] deciphered = Arrays.copyOfRange(cipher.doFinal(decodedCipher), 0, plainTextLength);
+      LOGGER.debug("decryped plain [{}]", deciphered);
+      return deciphered;
     } catch (IllegalBlockSizeException | BadPaddingException | NoSuchPaddingException excp) {
       LOGGER.error("Problem while decrypting Computop callback", excp);
     }
