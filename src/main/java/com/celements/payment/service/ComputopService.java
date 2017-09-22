@@ -23,10 +23,8 @@ package com.celements.payment.service;
 import static com.google.common.base.Preconditions.*;
 import static com.google.common.base.Strings.*;
 
-import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.net.URLEncoder;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
@@ -42,7 +40,6 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import javax.validation.constraints.NotNull;
 
-import org.apache.commons.codec.CharEncoding;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xwiki.component.annotation.Component;
@@ -249,13 +246,7 @@ public class ComputopService implements ComputopServiceRole {
   }
 
   String getReturnUrl(ReturnUrl urlType) {
-    try {
-      return URLEncoder.encode(configSrc.getProperty(urlType.getValue(), ""),
-          CharEncoding.UTF_8.toString());
-    } catch (UnsupportedEncodingException uee) {
-      LOGGER.error("{} encoding not available", CharEncoding.UTF_8.toString(), uee);
-    }
-    return "";
+    return configSrc.getProperty(urlType.getValue(), "");
   }
 
 }
