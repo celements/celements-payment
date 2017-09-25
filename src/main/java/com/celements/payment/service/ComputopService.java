@@ -29,6 +29,7 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.crypto.BadPaddingException;
@@ -47,7 +48,9 @@ import org.xwiki.component.annotation.Requirement;
 import org.xwiki.configuration.ConfigurationSource;
 
 import com.celements.payment.container.EncryptedComputopData;
+import com.celements.payment.exception.ComputopCryptoException;
 import com.google.common.base.Optional;
+import com.google.common.base.Splitter;
 import com.google.common.io.BaseEncoding;
 
 @Component
@@ -75,7 +78,7 @@ public class ComputopService implements ComputopServiceRole {
   public String getPaymentDataHmac(String payId, String transId, String merchantId,
       BigDecimal amount, String currency) {
     return hashPaymentData(nullToEmpty(payId) + "*" + nullToEmpty(transId) + "*" + nullToEmpty(
-        merchantId) + "*" + getAmount(amount) + "*" + nullToEmpty(currency));
+        merchantId) + "*" + getFormatedAmountString(amount) + "*" + nullToEmpty(currency));
   }
 
   String hashPaymentData(@NotNull String paymentData) {
@@ -94,28 +97,27 @@ public class ComputopService implements ComputopServiceRole {
 
   @Override
   public EncryptedComputopData encryptPaymentData(String transactionId, String orderDescription,
-      BigDecimal amount, String currency) {
+      BigDecimal amount, String currency) throws ComputopCryptoException {
     String dataPlainText = getPaymentDataPlainString(transactionId, orderDescription, amount,
         currency);
-    String encyrptedData = encryptString(dataPlainText.getBytes(), getBlowfishKey());
-    return new EncryptedComputopData(Optional.fromNullable(encyrptedData).or(""),
+    String cipherData = encryptString(dataPlainText.getBytes(), getBlowfishKey());
+    return new EncryptedComputopData(Optional.fromNullable(cipherData).or(""),
         dataPlainText.length());
   }
 
   @Override
-  public Map<String, String> decryptCallbackData(EncryptedComputopData encryptedCallback) {
+  public Map<String, String> decryptCallbackData(EncryptedComputopData encryptedCallback)
+      throws ComputopCryptoException {
     checkNotNull(encryptedCallback);
     byte[] decryptedData = decryptString(encryptedCallback, getBlowfishKey());
     Map<String, String> callbackData = new HashMap<>();
-    if (decryptedData != null) {
-      for (String parameter : (new String(decryptedData)).split("&")) {
-        String[] keyValue = parameter.split("=", 2);
-        String key = keyValue[0].toLowerCase();
-        String value = "";
-        if (keyValue.length > 1) {
-          value = keyValue[1];
-        }
-        callbackData.put(key, value);
+    for (String parameter : Splitter.on("&").omitEmptyStrings().split(new String(decryptedData))) {
+      List<String> keyValue = Splitter.on("=").limit(2).splitToList(parameter);
+      String key = keyValue.get(0).toLowerCase();
+      if (keyValue.size() > 1) {
+        callbackData.put(key, keyValue.get(1));
+      } else {
+        callbackData.put(key, "");
       }
     }
     return callbackData;
@@ -128,65 +130,64 @@ public class ComputopService implements ComputopServiceRole {
     currency = Optional.fromNullable(currency).or(DEFAULT_CURRENCY);
     String merchantId = getMerchantId();
     StringBuilder sb = new StringBuilder();
-    sb.append(FORM_INPUT_NAME_MERCHANT_ID).append("=").append(merchantId);
-    sb.append("&").append(FORM_INPUT_NAME_TRANS_ID).append("=").append(transactionId);
-    sb.append("&").append(FORM_INPUT_NAME_AMOUNT).append("=").append(getAmount(amount));
-    sb.append("&").append(FORM_INPUT_NAME_CURRENCY).append("=").append(currency);
-    sb.append("&").append(FORM_INPUT_NAME_DESCRIPTION).append("=").append(orderDescription);
-    sb.append("&").append(FORM_INPUT_NAME_HMAC);
-    sb.append("=").append(getPaymentDataHmac(null, transactionId, merchantId, amount, currency));
-    sb.append("&").append(ReturnUrl.SUCCESS.getParamName());
-    sb.append("=").append(getReturnUrl(ReturnUrl.SUCCESS));
-    sb.append("&").append(ReturnUrl.FAILURE.getParamName());
-    sb.append("=").append(getReturnUrl(ReturnUrl.FAILURE));
-    sb.append("&").append(ReturnUrl.CALLBACK.getParamName());
-    sb.append("=").append(getReturnUrl(ReturnUrl.CALLBACK));
+    appendQueryParameter(sb, FORM_INPUT_NAME_MERCHANT_ID, merchantId);
+    appendQueryParameter(sb, FORM_INPUT_NAME_TRANS_ID, transactionId);
+    appendQueryParameter(sb, FORM_INPUT_NAME_AMOUNT, getFormatedAmountString(amount));
+    appendQueryParameter(sb, FORM_INPUT_NAME_CURRENCY, currency);
+    appendQueryParameter(sb, FORM_INPUT_NAME_DESCRIPTION, orderDescription);
+    appendQueryParameter(sb, FORM_INPUT_NAME_HMAC, getPaymentDataHmac(null, transactionId,
+        merchantId, amount, currency));
+    appendQueryParameter(sb, ReturnUrl.SUCCESS.getParamName(), getReturnUrl(ReturnUrl.SUCCESS));
+    appendQueryParameter(sb, ReturnUrl.FAILURE.getParamName(), getReturnUrl(ReturnUrl.FAILURE));
+    appendQueryParameter(sb, ReturnUrl.CALLBACK.getParamName(), getReturnUrl(ReturnUrl.CALLBACK));
     return sb.toString();
   }
 
-  String encryptString(byte[] plainText, final SecretKey key) {
-    LOGGER.debug("encrypting plain [{}]", plainText);
+  void appendQueryParameter(StringBuilder sb, String key, String value) {
+    sb.append(key).append("=").append(value).append("&");
+  }
+
+  @NotNull
+  String encryptString(byte[] plainText, final SecretKey key) throws ComputopCryptoException {
+    LOGGER.debug("encrypting plain [{}]", new String(plainText));
     try {
       String cipherText = BaseEncoding.base16().encode(getCipher(Cipher.ENCRYPT_MODE,
           BLOWFISH_ECB_PADDED, key).doFinal(plainText));
       LOGGER.debug("encrypted cipher [{}]", cipherText);
       return cipherText;
-    } catch (IllegalBlockSizeException | BadPaddingException | NoSuchPaddingException excp) {
-      LOGGER.error("Problem while encrypting payment data", excp);
+    } catch (IllegalBlockSizeException | BadPaddingException excp) {
+      throw new ComputopCryptoException("Exception encrypting message", excp);
     }
-    return null;
   }
 
-  byte[] decryptString(EncryptedComputopData encryptedCallback, final SecretKey key) {
+  byte[] decryptString(EncryptedComputopData encryptedCallback, final SecretKey key)
+      throws ComputopCryptoException {
     CharSequence cs = encryptedCallback.getCipherText().toUpperCase();
     LOGGER.debug("decrypting cipher [{}]", cs);
     byte[] decodedCipher = BaseEncoding.base16().decode(cs);
     try {
       Cipher cipher = getCipher(Cipher.DECRYPT_MODE, BLOWFISH_ECB_UNPADDED, key);
-      byte[] deciphered = Arrays.copyOfRange(cipher.doFinal(decodedCipher), 0, encryptedCallback.getPlainDataLength());
-      LOGGER.debug("decryped plain [{}]", deciphered);
+      byte[] deciphered = Arrays.copyOfRange(cipher.doFinal(decodedCipher), 0,
+          encryptedCallback.getPlainDataLength());
+      LOGGER.debug("decryped plain [{}]", new String(deciphered));
       return deciphered;
-    } catch (IllegalBlockSizeException | BadPaddingException | NoSuchPaddingException excp) {
-      LOGGER.error("Problem while decrypting Computop callback", excp);
+    } catch (IllegalBlockSizeException | BadPaddingException excp) {
+      throw new ComputopCryptoException("Exception decrypting message", excp);
     }
-    return null;
   }
 
   Cipher getCipher(int cipherMode, final String algorithm, final SecretKey key)
-      throws NoSuchPaddingException {
+      throws ComputopCryptoException {
     try {
       Cipher cipher = Cipher.getInstance(algorithm);
       cipher.init(cipherMode, key);
       return cipher;
-    } catch (NoSuchAlgorithmException e) {
-      LOGGER.error("{} algorithm not availabe", algorithm);
-    } catch (InvalidKeyException e) {
-      LOGGER.error("SecretKey invalid for {} encryption", algorithm);
+    } catch (NoSuchAlgorithmException | InvalidKeyException | NoSuchPaddingException excp) {
+      throw new ComputopCryptoException("Exception creating encryption cipher", excp);
     }
-    return null;
   }
 
-  String getAmount(BigDecimal amount) {
+  String getFormatedAmountString(BigDecimal amount) {
     if (amount != null) {
       return amount.setScale(2, RoundingMode.HALF_UP).toPlainString();
     }

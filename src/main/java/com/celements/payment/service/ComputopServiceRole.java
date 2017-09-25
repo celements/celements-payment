@@ -29,6 +29,7 @@ import javax.validation.constraints.NotNull;
 import org.xwiki.component.annotation.ComponentRole;
 
 import com.celements.payment.container.EncryptedComputopData;
+import com.celements.payment.exception.ComputopCryptoException;
 
 @ComponentRole
 public interface ComputopServiceRole {
@@ -76,11 +77,11 @@ public interface ComputopServiceRole {
       this.param = param;
     }
 
-    public String getValue() {
+    public @NotNull String getValue() {
       return value;
     }
 
-    public String getParamName() {
+    public @NotNull String getParamName() {
       return param;
     }
   }
@@ -127,8 +128,9 @@ public interface ComputopServiceRole {
       @Nullable String code);
 
   /**
-   * Returns a map with the form parameters 'Len' and 'Data' to transmit to computop when checking
-   * out. The 'data' map entry contains the encrypted version of the following fields:
+   * Returns an EncryptedComputopData object with the form parameters 'Len' and 'Data' to transmit
+   * to computop when checking out. The 'data' map entry contains the encrypted version of the
+   * following fields:
    * - MerchantID
    * - TransID
    * - Amount
@@ -145,10 +147,14 @@ public interface ComputopServiceRole {
    *          Amount to be payed
    * @param currency
    *          Currency of the amount (default 'CHF')
-   * @return Map containing 'Len' and 'Data' parameters to be transmitted with checkout form
+   * @return EncryptedComputopData containing plain text length and encrypted text parameters to be
+   *         transmitted with checkout form
+   * @throws ComputopCryptoException
+   *           thrown if encryption fails with an Exception
    */
   public @NotNull EncryptedComputopData encryptPaymentData(@NotNull String transactionId,
-      @Nullable String orderDescription, @NotNull BigDecimal amount, @Nullable String currency);
+      @Nullable String orderDescription, @NotNull BigDecimal amount, @Nullable String currency)
+      throws ComputopCryptoException;
 
   /**
    * Deciphers callback data and returns all contained data in a map.
@@ -157,12 +163,12 @@ public interface ComputopServiceRole {
    * - The content of the map can change if Computop adds or removes parameters from their callback.
    *
    * @param encryptedCallback
-   *          Encrypted data string received as callback for a Computop payment
-   * @param plainDataLength
-   *          The length of the unencrypted data
+   *          Encrypted data received as callback for a Computop payment
    * @return Map containing all parameters received in a Computop payment callback. Keys in lower
    *         case
+   * @throws ComputopCryptoException
+   *           thrown if decryption fails with an Exception
    */
   public @NotNull Map<String, String> decryptCallbackData(
-      @NotNull EncryptedComputopData encryptedData);
+      @NotNull EncryptedComputopData encryptedData) throws ComputopCryptoException;
 }

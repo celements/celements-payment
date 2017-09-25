@@ -36,6 +36,7 @@ import org.xwiki.script.service.ScriptService;
 
 import com.celements.model.context.ModelContext;
 import com.celements.payment.container.EncryptedComputopData;
+import com.celements.payment.exception.ComputopCryptoException;
 import com.google.common.base.Optional;
 import com.xpn.xwiki.web.XWikiRequest;
 
@@ -86,7 +87,15 @@ public class ComputopScriptService implements ScriptService {
 
   public @NotNull EncryptedComputopData encryptPaymentData(@NotNull String transactionId,
       @Nullable String orderDescription, double amount, @Nullable String currency) {
-    return computopService.encryptPaymentData(transactionId, orderDescription, new BigDecimal(
-        amount), currency);
+    try {
+      return computopService.encryptPaymentData(transactionId, orderDescription, new BigDecimal(
+          amount), currency);
+    } catch (ComputopCryptoException cce) {
+      LOGGER.error("Exception encrypting computop data transId [{}], orderDesc [{}], amount [{}], "
+          + "currency [{}]", transactionId, orderDescription, amount, currency, cce);
+    } catch (NumberFormatException nfe) {
+      LOGGER.error("Invalid amount [{}]", amount, nfe);
+    }
+    return new EncryptedComputopData("", -1);
   }
 }

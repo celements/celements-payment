@@ -38,6 +38,7 @@ import org.xwiki.configuration.ConfigurationSource;
 
 import com.celements.common.test.AbstractComponentTest;
 import com.celements.payment.container.EncryptedComputopData;
+import com.celements.payment.exception.ComputopCryptoException;
 import com.celements.payment.service.ComputopServiceRole.ReturnUrl;
 import com.xpn.xwiki.web.Utils;
 
@@ -66,10 +67,10 @@ public class ComputopServiceTest extends AbstractComponentTest {
 
   @Test
   public void testGetAmount() {
-    assertEquals("2.00", service.getAmount(new BigDecimal(2)));
-    assertEquals("3.55", service.getAmount(new BigDecimal(3.55D)));
-    assertEquals("21.30", service.getAmount(new BigDecimal(21.3F)));
-    assertEquals("0.51", service.getAmount(new BigDecimal(.51)));
+    assertEquals("2.00", service.getFormatedAmountString(new BigDecimal(2)));
+    assertEquals("3.55", service.getFormatedAmountString(new BigDecimal(3.55D)));
+    assertEquals("21.30", service.getFormatedAmountString(new BigDecimal(21.3F)));
+    assertEquals("0.51", service.getFormatedAmountString(new BigDecimal(.51)));
   }
 
   @Test
@@ -127,27 +128,28 @@ public class ComputopServiceTest extends AbstractComponentTest {
   }
 
   @Test
-  public void testBlowfishEncrypt() {
+  public void testBlowfishEncrypt() throws ComputopCryptoException {
     assertTrue(service.encryptString(DEFAULT_BLOWFISH_PLAIN_TEXT.getBytes(),
         DEFAULT_BLOWFISH_KEY).startsWith(DEFAULT_BLOWFISH_MATCHING.toUpperCase()));
   }
 
   @Test
-  public void testBlowfishDecrypt_computopExampleImplementationEncrypted() {
+  public void testBlowfishDecrypt_computopExampleImplementationEncrypted()
+      throws ComputopCryptoException {
     assertEquals(DEFAULT_BLOWFISH_PLAIN_TEXT, new String(service.decryptString(
         new EncryptedComputopData(DEFAULT_BLOWFISH_COMPUTOP_ENCODED,
             DEFAULT_BLOWFISH_PLAIN_TEXT_LENGTH), DEFAULT_BLOWFISH_KEY)));
   }
 
   @Test
-  public void testBlowfishDecrypt_onlineToolEncrypted() {
+  public void testBlowfishDecrypt_onlineToolEncrypted() throws ComputopCryptoException {
     assertEquals(DEFAULT_BLOWFISH_PLAIN_TEXT, new String(service.decryptString(
         new EncryptedComputopData(DEFAULT_BLOWFISH_INTERNET_ENCODED,
             DEFAULT_BLOWFISH_PLAIN_TEXT_LENGTH), DEFAULT_BLOWFISH_KEY)));
   }
 
   @Test
-  public void testBlowfishEncryptDecryptCycle() {
+  public void testBlowfishEncryptDecryptCycle() throws ComputopCryptoException {
     String encrypted = service.encryptString(DEFAULT_BLOWFISH_PLAIN_TEXT.getBytes(),
         DEFAULT_BLOWFISH_KEY);
     assertEquals(DEFAULT_BLOWFISH_PLAIN_TEXT, new String(service.decryptString(
@@ -182,8 +184,8 @@ public class ComputopServiceTest extends AbstractComponentTest {
         + "&" + FORM_INPUT_NAME_DESCRIPTION + "=" + orderDescription + "&" + FORM_INPUT_NAME_HMAC
         + "=" + hmac + "&" + ReturnUrl.SUCCESS.getParamName() + "=" + successUrl + "&"
         + ReturnUrl.FAILURE.getParamName() + "=" + failureUrl + "&"
-        + ReturnUrl.CALLBACK.getParamName() + "=" + notifyUrl, service.getPaymentDataPlainString(
-            transactionId, orderDescription, amount, currency));
+        + ReturnUrl.CALLBACK.getParamName() + "=" + notifyUrl + "&",
+        service.getPaymentDataPlainString(transactionId, orderDescription, amount, currency));
     verifyDefault();
   }
 
