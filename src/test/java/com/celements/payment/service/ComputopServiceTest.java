@@ -37,6 +37,7 @@ import org.xwiki.component.manager.ComponentRepositoryException;
 import org.xwiki.configuration.ConfigurationSource;
 
 import com.celements.common.test.AbstractComponentTest;
+import com.celements.payment.container.EncryptedComputopData;
 import com.celements.payment.service.ComputopServiceRole.ReturnUrl;
 import com.xpn.xwiki.web.Utils;
 
@@ -134,23 +135,24 @@ public class ComputopServiceTest extends AbstractComponentTest {
   @Test
   public void testBlowfishDecrypt_computopExampleImplementationEncrypted() {
     assertEquals(DEFAULT_BLOWFISH_PLAIN_TEXT, new String(service.decryptString(
-        DEFAULT_BLOWFISH_COMPUTOP_ENCODED, DEFAULT_BLOWFISH_PLAIN_TEXT_LENGTH,
-        DEFAULT_BLOWFISH_KEY)));
+        new EncryptedComputopData(DEFAULT_BLOWFISH_COMPUTOP_ENCODED,
+            DEFAULT_BLOWFISH_PLAIN_TEXT_LENGTH), DEFAULT_BLOWFISH_KEY)));
   }
 
   @Test
   public void testBlowfishDecrypt_onlineToolEncrypted() {
     assertEquals(DEFAULT_BLOWFISH_PLAIN_TEXT, new String(service.decryptString(
-        DEFAULT_BLOWFISH_INTERNET_ENCODED, DEFAULT_BLOWFISH_PLAIN_TEXT_LENGTH,
-        DEFAULT_BLOWFISH_KEY)));
+        new EncryptedComputopData(DEFAULT_BLOWFISH_INTERNET_ENCODED,
+            DEFAULT_BLOWFISH_PLAIN_TEXT_LENGTH), DEFAULT_BLOWFISH_KEY)));
   }
 
   @Test
   public void testBlowfishEncryptDecryptCycle() {
     String encrypted = service.encryptString(DEFAULT_BLOWFISH_PLAIN_TEXT.getBytes(),
         DEFAULT_BLOWFISH_KEY);
-    assertEquals(DEFAULT_BLOWFISH_PLAIN_TEXT, new String(service.decryptString(encrypted,
-        DEFAULT_BLOWFISH_PLAIN_TEXT_LENGTH, DEFAULT_BLOWFISH_KEY)));
+    assertEquals(DEFAULT_BLOWFISH_PLAIN_TEXT, new String(service.decryptString(
+        new EncryptedComputopData(encrypted, DEFAULT_BLOWFISH_PLAIN_TEXT_LENGTH),
+        DEFAULT_BLOWFISH_KEY)));
   }
 
   @Test

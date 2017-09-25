@@ -46,6 +46,7 @@ import org.xwiki.component.annotation.Component;
 import org.xwiki.component.annotation.Requirement;
 import org.xwiki.configuration.ConfigurationSource;
 
+import com.celements.payment.container.EncryptedComputopData;
 import com.google.common.base.Optional;
 import com.google.common.io.BaseEncoding;
 
@@ -92,23 +93,19 @@ public class ComputopService implements ComputopServiceRole {
   }
 
   @Override
-  public Map<String, String> encryptPaymentData(String transactionId, String orderDescription,
+  public EncryptedComputopData encryptPaymentData(String transactionId, String orderDescription,
       BigDecimal amount, String currency) {
     String dataPlainText = getPaymentDataPlainString(transactionId, orderDescription, amount,
         currency);
-    Map<String, String> encryptedData = new HashMap<>();
-    encryptedData.put(FORM_INPUT_NAME_LENGTH, Integer.toString(dataPlainText.length()));
     String encyrptedData = encryptString(dataPlainText.getBytes(), getBlowfishKey());
-    if (encyrptedData != null) {
-      encryptedData.put(FORM_INPUT_NAME_DATA, encyrptedData);
-    }
-    return encryptedData;
+    return new EncryptedComputopData(Optional.fromNullable(encyrptedData).or(""),
+        dataPlainText.length());
   }
 
   @Override
-  public Map<String, String> decryptCallbackData(String encryptedCallback, int plainDataLength) {
+  public Map<String, String> decryptCallbackData(EncryptedComputopData encryptedCallback) {
     checkNotNull(encryptedCallback);
-    byte[] decryptedData = decryptString(encryptedCallback, plainDataLength, getBlowfishKey());
+    byte[] decryptedData = decryptString(encryptedCallback, getBlowfishKey());
     Map<String, String> callbackData = new HashMap<>();
     if (decryptedData != null) {
       for (String parameter : (new String(decryptedData)).split("&")) {
@@ -160,13 +157,13 @@ public class ComputopService implements ComputopServiceRole {
     return null;
   }
 
-  byte[] decryptString(String encryptedBase16, int plainTextLength, final SecretKey key) {
-    CharSequence cs = encryptedBase16.toUpperCase();
+  byte[] decryptString(EncryptedComputopData encryptedCallback, final SecretKey key) {
+    CharSequence cs = encryptedCallback.getCipherText().toUpperCase();
     LOGGER.debug("decrypting cipher [{}]", cs);
     byte[] decodedCipher = BaseEncoding.base16().decode(cs);
     try {
       Cipher cipher = getCipher(Cipher.DECRYPT_MODE, BLOWFISH_ECB_UNPADDED, key);
-      byte[] deciphered = Arrays.copyOfRange(cipher.doFinal(decodedCipher), 0, plainTextLength);
+      byte[] deciphered = Arrays.copyOfRange(cipher.doFinal(decodedCipher), 0, encryptedCallback.getPlainDataLength());
       LOGGER.debug("decryped plain [{}]", deciphered);
       return deciphered;
     } catch (IllegalBlockSizeException | BadPaddingException | NoSuchPaddingException excp) {

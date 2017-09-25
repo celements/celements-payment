@@ -28,6 +28,8 @@ import javax.validation.constraints.NotNull;
 
 import org.xwiki.component.annotation.ComponentRole;
 
+import com.celements.payment.container.EncryptedComputopData;
+
 @ComponentRole
 public interface ComputopServiceRole {
 
@@ -145,7 +147,7 @@ public interface ComputopServiceRole {
    *          Currency of the amount (default 'CHF')
    * @return Map containing 'Len' and 'Data' parameters to be transmitted with checkout form
    */
-  public @NotNull Map<String, String> encryptPaymentData(@NotNull String transactionId,
+  public @NotNull EncryptedComputopData encryptPaymentData(@NotNull String transactionId,
       @Nullable String orderDescription, @NotNull BigDecimal amount, @Nullable String currency);
 
   /**
@@ -161,6 +163,6 @@ public interface ComputopServiceRole {
    * @return Map containing all parameters received in a Computop payment callback. Keys in lower
    *         case
    */
-  public @NotNull Map<String, String> decryptCallbackData(@NotNull String encryptedCallback,
-      int plainDataLength);
+  public @NotNull Map<String, String> decryptCallbackData(
+      @NotNull EncryptedComputopData encryptedData);
 }

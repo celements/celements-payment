@@ -3,7 +3,6 @@ package com.celements.payment.service;
 import static com.celements.payment.service.ComputopServiceRole.*;
 
 import java.math.BigDecimal;
-import java.util.Map;
 
 import javax.annotation.Nullable;
 
@@ -36,6 +35,7 @@ import org.xwiki.component.annotation.Requirement;
 import org.xwiki.script.service.ScriptService;
 
 import com.celements.model.context.ModelContext;
+import com.celements.payment.container.EncryptedComputopData;
 import com.google.common.base.Optional;
 import com.xpn.xwiki.web.XWikiRequest;
 
@@ -84,7 +84,7 @@ public class ComputopScriptService implements ScriptService {
     return computopService.isCallbackHashValid(hash, payId, transId, merchantId, status, code);
   }
 
-  public @NotNull Map<String, String> encryptPaymentData(@NotNull String transactionId,
+  public @NotNull EncryptedComputopData encryptPaymentData(@NotNull String transactionId,
       @Nullable String orderDescription, double amount, @Nullable String currency) {
     return computopService.encryptPaymentData(transactionId, orderDescription, new BigDecimal(
         amount), currency);
