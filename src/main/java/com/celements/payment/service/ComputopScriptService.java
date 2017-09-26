@@ -91,8 +91,12 @@ public class ComputopScriptService implements ScriptService {
   public @NotNull EncryptedComputopData encryptPaymentData(@NotNull String transactionId,
       @Nullable String orderDescription, double amount, @Nullable String currency) {
     try {
-      return computopService.encryptPaymentData(transactionId, orderDescription, new BigDecimal(
-          amount), currency);
+      if (transactionId != null) {
+        return computopService.encryptPaymentData(transactionId, orderDescription, new BigDecimal(
+            amount), currency);
+      } else {
+        LOGGER.warn("encryptPaymentData called with transaction ID 'null'");
+      }
     } catch (ComputopCryptoException cce) {
       LOGGER.error("Exception encrypting computop data transId [{}], orderDesc [{}], amount [{}], "
           + "currency [{}]", transactionId, orderDescription, amount, currency, cce);
@@ -114,10 +118,14 @@ public class ComputopScriptService implements ScriptService {
   public @NotNull Map<String, String> decryptPaymentData() throws ComputopCryptoException {
     Optional<XWikiRequest> request = modelContext.getRequest();
     if (request.isPresent()) {
-
-      String cipherText = request.get().get(nullToEmpty(FORM_INPUT_NAME_DATA));
-      int plainDataLength = Integer.parseInt(nullToEmpty(request.get().get(
-          FORM_INPUT_NAME_LENGTH)));
+      String cipherText = nullToEmpty(request.get().get(FORM_INPUT_NAME_DATA));
+      int plainDataLength = -1;
+      try {
+        Integer.parseInt(nullToEmpty(request.get().get(FORM_INPUT_NAME_LENGTH)));
+      } catch (NumberFormatException nfe) {
+        LOGGER.debug("Exception parsing number from param [{}]=[{}]", FORM_INPUT_NAME_LENGTH,
+            request.get().get(FORM_INPUT_NAME_LENGTH), nfe);
+      }
       EncryptedComputopData encryptedData = new EncryptedComputopData(cipherText, plainDataLength);
       return computopService.decryptCallbackData(encryptedData);
     }
