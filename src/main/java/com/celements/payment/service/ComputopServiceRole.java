@@ -55,7 +55,9 @@ public interface ComputopServiceRole {
 
   public static final String DEFAULT_CURRENCY = "CHF";
 
-  static final String MERCHANT_ID_PROP = "computop_merchant_id";
+  public static final String MERCHANT_ID_PROP = "computop_merchant_id";
+  public static final String COMPUTOP_PAYFORM_ACTION_URL = "computop_paymform_action_url";
+  public static final String CELEMENTS_PAYFORM_ACTION_URL = "celements_paymform_action_url";
 
   static final String BLOWFISH = "Blowfish";
   static final String BLOWFISH_ECB_PADDED = BLOWFISH + "/ECB/PKCS5Padding";

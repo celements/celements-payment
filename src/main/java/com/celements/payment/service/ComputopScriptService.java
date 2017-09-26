@@ -35,6 +35,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xwiki.component.annotation.Component;
 import org.xwiki.component.annotation.Requirement;
+import org.xwiki.configuration.ConfigurationSource;
 import org.xwiki.script.service.ScriptService;
 
 import com.celements.model.context.ModelContext;
@@ -50,6 +51,9 @@ public class ComputopScriptService implements ScriptService {
 
   @Requirement
   private ComputopServiceRole computopService;
+
+  @Requirement
+  private ConfigurationSource configSrc;
 
   @Requirement
   private ModelContext modelContext;
@@ -104,6 +108,13 @@ public class ComputopScriptService implements ScriptService {
       LOGGER.error("Invalid amount [{}]", amount, nfe);
     }
     return new EncryptedComputopData("", -1);
+  }
+
+  public @NotNull String getPayFormAction(double amount) {
+    if (amount > 0) {
+      return configSrc.getProperty(ComputopServiceRole.COMPUTOP_PAYFORM_ACTION_URL, "");
+    }
+    return configSrc.getProperty(ComputopServiceRole.CELEMENTS_PAYFORM_ACTION_URL, "");
   }
 
   /**

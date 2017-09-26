@@ -59,7 +59,7 @@ public class ComputopService implements ComputopServiceRole {
   private static final Logger LOGGER = LoggerFactory.getLogger(ComputopService.class);
 
   @Requirement
-  ConfigurationSource configSrc;
+  private ConfigurationSource configSrc;
 
   @Override
   public boolean isCallbackHashValid(String hash, String payId, String transId, String merchantId,
