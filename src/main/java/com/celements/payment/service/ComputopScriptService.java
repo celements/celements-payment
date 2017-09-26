@@ -1,8 +1,11 @@
 package com.celements.payment.service;
 
 import static com.celements.payment.service.ComputopServiceRole.*;
+import static com.google.common.base.Strings.*;
 
 import java.math.BigDecimal;
+import java.util.Collections;
+import java.util.Map;
 
 import javax.annotation.Nullable;
 
@@ -97,5 +100,27 @@ public class ComputopScriptService implements ScriptService {
       LOGGER.error("Invalid amount [{}]", amount, nfe);
     }
     return new EncryptedComputopData("", -1);
+  }
+
+  /**
+   * This method is meant for testing purposes only. In a production environment it is discouraged
+   * to use Velocity to handle payment callbacks. A Java implementation should be used instead.
+   *
+   * @return A map containing the decrypted callback data (keys are lower case, number and name of
+   *         keys depends on Computop and may vary)
+   * @throws ComputopCryptoException
+   *           thrown if the decryption fails
+   */
+  public @NotNull Map<String, String> decryptPaymentData() throws ComputopCryptoException {
+    Optional<XWikiRequest> request = modelContext.getRequest();
+    if (request.isPresent()) {
+
+      String cipherText = request.get().get(nullToEmpty(FORM_INPUT_NAME_DATA));
+      int plainDataLength = Integer.parseInt(nullToEmpty(request.get().get(
+          FORM_INPUT_NAME_LENGTH)));
+      EncryptedComputopData encryptedData = new EncryptedComputopData(cipherText, plainDataLength);
+      return computopService.decryptCallbackData(encryptedData);
+    }
+    return Collections.emptyMap();
   }
 }
