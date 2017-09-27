@@ -57,40 +57,6 @@ public interface ComputopServiceRole {
 
   public static final String DEFAULT_CURRENCY = "CHF";
 
-  public static final String MERCHANT_ID_PROP = "computop_merchant_id";
-  public static final String COMPUTOP_PAYFORM_ACTION_URL = "computop_paymform_action_url";
-  public static final String CELEMENTS_PAYFORM_ACTION_URL = "celements_paymform_action_url";
-
-  static final String BLOWFISH = "Blowfish";
-  static final String BLOWFISH_ECB_PADDED = BLOWFISH + "/ECB/PKCS5Padding";
-  static final String BLOWFISH_ECB_UNPADDED = BLOWFISH + "/ECB/NoPadding";
-  static final String BLOWFISH_SECRET_KEY_PROP = "computop_blowfish_secret_key";
-
-  static final String HMAC_SHA256 = "HmacSHA256";
-  static final String HMAC_SECRET_KEY_PROP = "computop_hmac_secret_key";
-
-  enum ReturnUrl {
-    SUCCESS("computop_return_url_success", "URLSuccess"),
-    FAILURE("computop_return_url_failure", "URLFailure"),
-    CALLBACK("computop_return_url_callback", "URLNotify");
-
-    private final String value;
-    private final String param;
-
-    private ReturnUrl(String value, String param) {
-      this.value = value;
-      this.param = param;
-    }
-
-    public @NotNull String getValue() {
-      return value;
-    }
-
-    public @NotNull String getParamName() {
-      return param;
-    }
-  }
-
   /**
    * Hash Message Authentication Codes (HMAC) used in the MAC parameter when submitting a payment
    * form to Coputop

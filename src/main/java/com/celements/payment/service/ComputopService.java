@@ -22,6 +22,7 @@ package com.celements.payment.service;
 
 import static com.google.common.base.Preconditions.*;
 import static com.google.common.base.Strings.*;
+import static java.lang.Math.*;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -63,6 +64,37 @@ import com.google.common.io.BaseEncoding;
 public class ComputopService implements ComputopServiceRole {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ComputopService.class);
+
+  static final String MERCHANT_ID_PROP = "computop_merchant_id";
+
+  static final String BLOWFISH = "Blowfish";
+  static final String BLOWFISH_ECB_PADDED = BLOWFISH + "/ECB/PKCS5Padding";
+  static final String BLOWFISH_ECB_UNPADDED = BLOWFISH + "/ECB/NoPadding";
+  static final String BLOWFISH_SECRET_KEY_PROP = "computop_blowfish_secret_key";
+
+  static final String HMAC_SHA256 = "HmacSHA256";
+  static final String HMAC_SECRET_KEY_PROP = "computop_hmac_secret_key";
+
+  enum ReturnUrl {
+    SUCCESS("computop_return_url_success", "URLSuccess"), FAILURE("computop_return_url_failure",
+        "URLFailure"), CALLBACK("computop_return_url_callback", "URLNotify");
+
+    private final String value;
+    private final String param;
+
+    private ReturnUrl(String value, String param) {
+      this.value = value;
+      this.param = param;
+    }
+
+    public @NotNull String getValue() {
+      return value;
+    }
+
+    public @NotNull String getParamName() {
+      return param;
+    }
+  }
 
   @Requirement
   IPaymentService paymentService;
@@ -174,17 +206,22 @@ public class ComputopService implements ComputopServiceRole {
 
   byte[] decryptString(EncryptedComputopData encryptedCallback, final SecretKey key)
       throws ComputopCryptoException {
-    CharSequence cs = encryptedCallback.getCipherText().toUpperCase();
-    LOGGER.debug("decrypting cipher [{}]", cs);
-    byte[] decodedCipher = BaseEncoding.base16().decode(cs);
-    try {
-      Cipher cipher = getCipher(Cipher.DECRYPT_MODE, BLOWFISH_ECB_UNPADDED, key);
-      byte[] deciphered = Arrays.copyOfRange(cipher.doFinal(decodedCipher), 0,
-          encryptedCallback.getPlainDataLength());
-      LOGGER.debug("decryped plain [{}]", new String(deciphered));
-      return deciphered;
-    } catch (IllegalBlockSizeException | BadPaddingException excp) {
-      throw new ComputopCryptoException("Exception decrypting message", excp);
+    if (encryptedCallback.getCipherText().isPresent()) {
+      CharSequence cs = encryptedCallback.getCipherText().get().toUpperCase();
+      LOGGER.debug("decrypting cipher [{}]", cs);
+      byte[] decodedCipher = BaseEncoding.base16().decode(cs);
+      try {
+        Cipher cipher = getCipher(Cipher.DECRYPT_MODE, BLOWFISH_ECB_UNPADDED, key);
+        int len = encryptedCallback.getPlainDataLength();
+        byte[] unpadded = cipher.doFinal(decodedCipher);
+        byte[] deciphered = Arrays.copyOfRange(unpadded, 0, min(max(len, 0), unpadded.length));
+        LOGGER.debug("decryped plain [{}]", new String(deciphered));
+        return deciphered;
+      } catch (IllegalBlockSizeException | BadPaddingException excp) {
+        throw new ComputopCryptoException("Exception decrypting message", excp);
+      }
+    } else {
+      throw new ComputopCryptoException("Ciphertext to decrypted is absent");
     }
   }
 
