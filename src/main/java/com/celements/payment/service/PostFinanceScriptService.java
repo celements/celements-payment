@@ -19,8 +19,6 @@
  */
 package com.celements.payment.service;
 
-import groovy.lang.Singleton;
-
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
@@ -41,6 +39,7 @@ import org.xwiki.query.QueryManager;
 import org.xwiki.script.service.ScriptService;
 
 import com.celements.payment.IPaymentService;
+import com.celements.payment.PaymentService;
 import com.celements.payment.raw.EProcessStatus;
 import com.celements.payment.raw.PostFinance;
 import com.celements.web.service.IWebUtilsService;
@@ -50,12 +49,13 @@ import com.xpn.xwiki.doc.XWikiDocument;
 import com.xpn.xwiki.objects.BaseObject;
 import com.xpn.xwiki.web.XWikiRequest;
 
+import groovy.lang.Singleton;
+
 @Component("postFinance")
 @Singleton
 public class PostFinanceScriptService implements ScriptService {
 
-  private static Log LOGGER = LogFactory.getFactory().getInstance(
-      PostFinanceScriptService.class);
+  private static Log LOGGER = LogFactory.getFactory().getInstance(PostFinanceScriptService.class);
 
   @Requirement
   IPostFinanceService postFinanceService;
@@ -73,7 +73,7 @@ public class PostFinanceScriptService implements ScriptService {
   QueryManager queryManager;
 
   private XWikiContext getContext() {
-    return (XWikiContext)execution.getContext().getProperty("xwikicontext");
+    return (XWikiContext) execution.getContext().getProperty("xwikicontext");
   }
 
   private SimpleDateFormat paymentDateFormat = new SimpleDateFormat("MM/dd/yy");
@@ -85,7 +85,7 @@ public class PostFinanceScriptService implements ScriptService {
       PostFinance PostFinanceObj = createPostFinanceObjFromRequest(txnId);
       try {
         postFinanceService.storePostFinanceObject(PostFinanceObj, true);
-        //FIXME move execution of callbackAction to general async processing of callback
+        // FIXME move execution of callbackAction to general async processing of callback
         executeCallbackAction(getContext().getRequest().getParameterMap());
       } catch (XWikiException exp) {
         LOGGER.error("Failed to store PostFinance object for txn_id [" + txnId + "].", exp);
@@ -94,7 +94,7 @@ public class PostFinanceScriptService implements ScriptService {
   }
 
   private String getNewTxnId() {
-    //XXX What to use for txnId? Postfinance does not provide any...
+    // XXX What to use for txnId? Postfinance does not provide any...
     return getRequestParam("orderID") + "-" + (new Date().getTime() / 1000 / 60);
   }
 
@@ -111,12 +111,12 @@ public class PostFinanceScriptService implements ScriptService {
 
   @SuppressWarnings("unchecked")
   public void executeCallbackAction(Map parameterMap) {
-    Map<String, String[]> data = new HashMap<String, String[]>();
+    Map<String, String[]> data = new HashMap<>();
     data.putAll(parameterMap);
     if (parameterMap.containsKey("custom")) {
       String customValue = data.get("custom")[0];
       if ((customValue != null) && (!"".equals(customValue))) {
-        //shoppingCartDoc.fullName;$user
+        // shoppingCartDoc.fullName;$user
         String[] customValueSplit = customValue.split(";");
         if (customValueSplit.length > 1) {
           String cartDocFN = customValueSplit[0];
@@ -181,6 +181,10 @@ public class PostFinanceScriptService implements ScriptService {
     return getContext().getRequest().get(key);
   }
 
+  /**
+   * @deprecated instead use {@link PaymentService#serializeHeaderFromRequest()}
+   */
+  @Deprecated
   @SuppressWarnings("unchecked")
   String getOrigHeader(XWikiRequest request) {
     StringBuffer origHeaderBuffer = new StringBuffer();
@@ -194,6 +198,10 @@ public class PostFinanceScriptService implements ScriptService {
     return origHeaderBuffer.toString();
   }
 
+  /**
+   * @deprecated instead use {@link PaymentService#serializeParameterMapFromRequest()}
+   */
+  @Deprecated
   @SuppressWarnings("unchecked")
   String getOrigMessage(XWikiRequest request) {
     StringBuffer origMessageBuffer = new StringBuffer();
@@ -207,8 +215,7 @@ public class PostFinanceScriptService implements ScriptService {
     return origMessageBuffer.toString();
   }
 
-  private void addParamToStringBuffer(StringBuffer stringBuffer, String key,
-      String[] values) {
+  private void addParamToStringBuffer(StringBuffer stringBuffer, String key, String[] values) {
     String valueStr = "";
     if (values.length == 1) {
       valueStr = values[0];
@@ -219,14 +226,14 @@ public class PostFinanceScriptService implements ScriptService {
   }
 
   private Map<String, String[]> convertToMap(String origMessage) {
-    Map<String, String[]> paramMap = new HashMap<String, String[]>();
+    Map<String, String[]> paramMap = new HashMap<>();
     for (String line : origMessage.split("\n")) {
       String[] pair = line.split("=");
       String value = "";
       if (pair.length > 1) {
         value = pair[1];
       }
-      String[] params = new String[] {value};
+      String[] params = new String[] { value };
       paramMap.put(pair[0], params);
     }
     return paramMap;

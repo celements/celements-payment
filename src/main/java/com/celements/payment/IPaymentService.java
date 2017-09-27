@@ -36,9 +36,6 @@ public interface IPaymentService {
   void storePaymentObject(@NotNull PaymentRawObject paymentObj) throws PaymentException;
 
   @NotNull
-  String getRequestParam(@NotNull String key);
-
-  @NotNull
   String serializeHeaderFromRequest();
 
   @NotNull

@@ -101,15 +101,6 @@ public class PaymentService implements IPaymentService {
   }
 
   @Override
-  public String getRequestParam(String key) {
-    String value = "";
-    if (context.getRequest().isPresent()) {
-      value = context.getRequest().get().get(key);
-    }
-    return value;
-  }
-
-  @Override
   public String serializeHeaderFromRequest() {
     StringBuilder sb = new StringBuilder();
     if (context.getRequest().isPresent()) {

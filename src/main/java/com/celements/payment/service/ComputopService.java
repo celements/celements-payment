@@ -277,11 +277,18 @@ public class ComputopService implements ComputopServiceRole {
     Computop computopObj = new Computop();
     computopObj.setOrigHeader(paymentService.serializeHeaderFromRequest());
     computopObj.setOrigMessage(paymentService.serializeParameterMapFromRequest());
-    computopObj.setLength(NumberUtils.toInt(paymentService.getRequestParam(FORM_INPUT_NAME_LENGTH),
-        0));
-    computopObj.setData(paymentService.getRequestParam(FORM_INPUT_NAME_DATA));
+    computopObj.setLength(NumberUtils.toInt(getRequestParam(FORM_INPUT_NAME_LENGTH), 0));
+    computopObj.setData(getRequestParam(FORM_INPUT_NAME_DATA));
     computopObj.setProcessStatus(EProcessStatus.New);
     return computopObj;
+  }
+
+  private String getRequestParam(String key) {
+    String value = "";
+    if (context.getRequest().isPresent()) {
+      value = context.getRequest().get().get(key);
+    }
+    return value;
   }
 
   @Override
