@@ -21,10 +21,15 @@ package com.celements.payment.service;
  */
 
 import static com.celements.common.test.CelementsTestUtils.*;
+import static com.celements.payment.service.ComputopServiceRole.*;
 import static org.easymock.EasyMock.*;
 import static org.junit.Assert.*;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -32,13 +37,24 @@ import org.xwiki.component.manager.ComponentRepositoryException;
 import org.xwiki.configuration.ConfigurationSource;
 
 import com.celements.common.test.AbstractComponentTest;
+import com.celements.payment.container.EncryptedComputopData;
+import com.celements.payment.exception.ComputopCryptoException;
+import com.celements.payment.service.ComputopServiceRole.ReturnUrl;
 import com.xpn.xwiki.web.Utils;
 
 public class ComputopServiceTest extends AbstractComponentTest {
 
   private static final String DEFAULT_HMAC_TEST_KEY = "ComputopSecretHmacKey!";
-  private static final String DEFAULT_EXAMPLE_PLAIN_TEXT = "She sells sea shells by the sea shore.";
-  private static final String DEFAULT_EXAMPLE_HASHED = "5d286cc2c516e86470098ef7da266294fec3897035ba74da1ddcc60bd5732701";
+  private static final String DEFAULT_HMAC_EXAMPLE_PLAIN_TEXT = "She sells sea shells by the sea shore.";
+  private static final String DEFAULT_HMAC_EXAMPLE_HASHED = "5d286cc2c516e86470098ef7da266294fec3897035ba74da1ddcc60bd5732701";
+
+  private static final SecretKey DEFAULT_BLOWFISH_KEY = new SecretKeySpec(
+      "16CharKeyLength!".getBytes(), BLOWFISH);
+  private static final String DEFAULT_BLOWFISH_PLAIN_TEXT = "Unencrypted plain text!";
+  private static final int DEFAULT_BLOWFISH_PLAIN_TEXT_LENGTH = DEFAULT_BLOWFISH_PLAIN_TEXT.length();
+  private static final String DEFAULT_BLOWFISH_MATCHING = "4105AAFDC6445BF2EB8242371136F488";
+  private static final String DEFAULT_BLOWFISH_COMPUTOP_ENCODED = "4105AAFDC6445BF2EB8242371136F4886413347EEB8731B9";
+  private static final String DEFAULT_BLOWFISH_INTERNET_ENCODED = "4105aafdc6445bf2eb8242371136f488a4812b38a821e753";
 
   private ComputopService service;
   private ConfigurationSource configSrcMock;
@@ -51,25 +67,26 @@ public class ComputopServiceTest extends AbstractComponentTest {
 
   @Test
   public void testGetAmount() {
-    assertEquals("2.00", service.getAmount(new BigDecimal(2)));
-    assertEquals("3.55", service.getAmount(new BigDecimal(3.55D)));
-    assertEquals("21.30", service.getAmount(new BigDecimal(21.3F)));
-    assertEquals("0.51", service.getAmount(new BigDecimal(.51)));
+    assertEquals("2.00", service.getFormatedAmountString(new BigDecimal(2)));
+    assertEquals("3.55", service.getFormatedAmountString(new BigDecimal(3.55D)));
+    assertEquals("21.30", service.getFormatedAmountString(new BigDecimal(21.3F)));
+    assertEquals("0.51", service.getFormatedAmountString(new BigDecimal(.51)));
   }
 
   @Test
   public void testHashPaymentData() {
-    expect(configSrcMock.getProperty(eq(ComputopService.HMAC_SECRET_KEY_PROP), eq(""))).andReturn(
+    expect(configSrcMock.getProperty(eq(HMAC_SECRET_KEY_PROP), eq(""))).andReturn(
         DEFAULT_HMAC_TEST_KEY);
     replayDefault();
-    assertEquals(DEFAULT_EXAMPLE_HASHED, service.hashPaymentData(DEFAULT_EXAMPLE_PLAIN_TEXT));
+    assertEquals(DEFAULT_HMAC_EXAMPLE_HASHED, service.hashPaymentData(
+        DEFAULT_HMAC_EXAMPLE_PLAIN_TEXT));
     verifyDefault();
   }
 
   @Test
   public void testGetPaymentDataHmac() {
     String paymentHmac = "1df273c64b4342265e92357f7f3fb1cdfbfbe3e3c89d2fb8d93c25411a1a2285";
-    expect(configSrcMock.getProperty(eq(ComputopService.HMAC_SECRET_KEY_PROP), eq(""))).andReturn(
+    expect(configSrcMock.getProperty(eq(HMAC_SECRET_KEY_PROP), eq(""))).andReturn(
         DEFAULT_HMAC_TEST_KEY);
     replayDefault();
     assertEquals(paymentHmac, service.getPaymentDataHmac("payId", "transId", "merchantId",
@@ -80,7 +97,7 @@ public class ComputopServiceTest extends AbstractComponentTest {
   @Test
   public void testGetPaymentDataHmac_nullField() {
     String paymentHmac = "0678abd0cbc568254ab4a4ecff7beae7a1d3398cc106e2df50f815820c489a87";
-    expect(configSrcMock.getProperty(eq(ComputopService.HMAC_SECRET_KEY_PROP), eq(""))).andReturn(
+    expect(configSrcMock.getProperty(eq(HMAC_SECRET_KEY_PROP), eq(""))).andReturn(
         DEFAULT_HMAC_TEST_KEY);
     replayDefault();
     assertEquals(paymentHmac, service.getPaymentDataHmac(null, "transId", "merchantId",
@@ -91,7 +108,7 @@ public class ComputopServiceTest extends AbstractComponentTest {
   @Test
   public void testIsCallbackHashValid_true() {
     String callbackHmac = "04b7e62d9b0fc4e024edf416317861707261351a71b5fb1f464e11ec2e5d161a";
-    expect(configSrcMock.getProperty(eq(ComputopService.HMAC_SECRET_KEY_PROP), eq(""))).andReturn(
+    expect(configSrcMock.getProperty(eq(HMAC_SECRET_KEY_PROP), eq(""))).andReturn(
         DEFAULT_HMAC_TEST_KEY);
     replayDefault();
     assertTrue(service.isCallbackHashValid(callbackHmac, "payId", "transId", "merchantId", "payed",
@@ -102,11 +119,73 @@ public class ComputopServiceTest extends AbstractComponentTest {
   @Test
   public void testIsCallbackHashValid_false() {
     String callbackHmac = "ffffe62d9b0fc4e024edf416317861707261351a71b5fb1f464e11ec2e5d161a";
-    expect(configSrcMock.getProperty(eq(ComputopService.HMAC_SECRET_KEY_PROP), eq(""))).andReturn(
+    expect(configSrcMock.getProperty(eq(HMAC_SECRET_KEY_PROP), eq(""))).andReturn(
         DEFAULT_HMAC_TEST_KEY);
     replayDefault();
     assertFalse(service.isCallbackHashValid(callbackHmac, "payId", "transId", "merchantId", "payed",
         "123"));
+    verifyDefault();
+  }
+
+  @Test
+  public void testBlowfishEncrypt() throws ComputopCryptoException {
+    assertTrue(service.encryptString(DEFAULT_BLOWFISH_PLAIN_TEXT.getBytes(),
+        DEFAULT_BLOWFISH_KEY).startsWith(DEFAULT_BLOWFISH_MATCHING.toUpperCase()));
+  }
+
+  @Test
+  public void testBlowfishDecrypt_computopExampleImplementationEncrypted()
+      throws ComputopCryptoException {
+    assertEquals(DEFAULT_BLOWFISH_PLAIN_TEXT, new String(service.decryptString(
+        new EncryptedComputopData(DEFAULT_BLOWFISH_COMPUTOP_ENCODED,
+            DEFAULT_BLOWFISH_PLAIN_TEXT_LENGTH), DEFAULT_BLOWFISH_KEY)));
+  }
+
+  @Test
+  public void testBlowfishDecrypt_onlineToolEncrypted() throws ComputopCryptoException {
+    assertEquals(DEFAULT_BLOWFISH_PLAIN_TEXT, new String(service.decryptString(
+        new EncryptedComputopData(DEFAULT_BLOWFISH_INTERNET_ENCODED,
+            DEFAULT_BLOWFISH_PLAIN_TEXT_LENGTH), DEFAULT_BLOWFISH_KEY)));
+  }
+
+  @Test
+  public void testBlowfishEncryptDecryptCycle() throws ComputopCryptoException {
+    String encrypted = service.encryptString(DEFAULT_BLOWFISH_PLAIN_TEXT.getBytes(),
+        DEFAULT_BLOWFISH_KEY);
+    assertEquals(DEFAULT_BLOWFISH_PLAIN_TEXT, new String(service.decryptString(
+        new EncryptedComputopData(encrypted, DEFAULT_BLOWFISH_PLAIN_TEXT_LENGTH),
+        DEFAULT_BLOWFISH_KEY)));
+  }
+
+  @Test
+  public void testGetPaymentDataPlainString() throws Exception {
+    String merchantId = "merchant";
+    String transactionId = "tid";
+    String orderDescription = "1.35 meter of kilogram per hour";
+    BigDecimal amount = new BigDecimal(32.5);
+    String currency = "EUR";
+    String successUrl = "https://server/success?test=x";
+    String failureUrl = "https://server/failure";
+    String notifyUrl = "https://server/notify?callback=1";
+    expect(configSrcMock.getProperty(eq(HMAC_SECRET_KEY_PROP), eq(""))).andReturn(
+        DEFAULT_HMAC_TEST_KEY).atLeastOnce();
+    expect(configSrcMock.getProperty(eq(MERCHANT_ID_PROP), eq(""))).andReturn(merchantId);
+    expect(configSrcMock.getProperty(eq(ReturnUrl.SUCCESS.getValue()), eq(""))).andReturn(
+        successUrl);
+    expect(configSrcMock.getProperty(eq(ReturnUrl.FAILURE.getValue()), eq(""))).andReturn(
+        failureUrl);
+    expect(configSrcMock.getProperty(eq(ReturnUrl.CALLBACK.getValue()), eq(""))).andReturn(
+        notifyUrl);
+    replayDefault();
+    String hmac = service.getPaymentDataHmac(null, transactionId, merchantId, amount, currency);
+    assertEquals(FORM_INPUT_NAME_MERCHANT_ID + "=" + merchantId + "&" + FORM_INPUT_NAME_TRANS_ID
+        + "=" + transactionId + "&" + FORM_INPUT_NAME_AMOUNT + "=" + amount.setScale(2,
+            RoundingMode.HALF_UP).toPlainString() + "&" + FORM_INPUT_NAME_CURRENCY + "=" + currency
+        + "&" + FORM_INPUT_NAME_DESCRIPTION + "=" + orderDescription + "&" + FORM_INPUT_NAME_HMAC
+        + "=" + hmac + "&" + ReturnUrl.SUCCESS.getParamName() + "=" + successUrl + "&"
+        + ReturnUrl.FAILURE.getParamName() + "=" + failureUrl + "&"
+        + ReturnUrl.CALLBACK.getParamName() + "=" + notifyUrl + "&",
+        service.getPaymentDataPlainString(transactionId, orderDescription, amount, currency));
     verifyDefault();
   }
 

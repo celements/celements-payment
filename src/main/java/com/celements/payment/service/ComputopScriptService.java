@@ -1,5 +1,14 @@
 package com.celements.payment.service;
 
+import static com.celements.payment.service.ComputopServiceRole.*;
+import static com.google.common.base.Strings.*;
+
+import java.math.BigDecimal;
+import java.util.Collections;
+import java.util.Map;
+
+import javax.annotation.Nullable;
+
 /*
  * See the NOTICE file distributed with this work for additional
  * information regarding copyright ownership.
@@ -22,19 +31,115 @@ package com.celements.payment.service;
 
 import javax.validation.constraints.NotNull;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.xwiki.component.annotation.Component;
 import org.xwiki.component.annotation.Requirement;
+import org.xwiki.configuration.ConfigurationSource;
 import org.xwiki.script.service.ScriptService;
+
+import com.celements.model.context.ModelContext;
+import com.celements.payment.container.EncryptedComputopData;
+import com.celements.payment.exception.ComputopCryptoException;
+import com.google.common.base.Optional;
+import com.xpn.xwiki.web.XWikiRequest;
 
 @Component("computop")
 public class ComputopScriptService implements ScriptService {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(ComputopScriptService.class);
+
   @Requirement
   private ComputopServiceRole computopService;
+
+  @Requirement
+  private ConfigurationSource configSrc;
+
+  @Requirement
+  private ModelContext modelContext;
+
+  /**
+   * Checks from request parameters if the callback HMAC is valid.
+   *
+   * @return true if the request contains a HMAC which is verifiable
+   */
+  public boolean isCallbackHashValid() {
+    Optional<XWikiRequest> request = modelContext.getRequest();
+    if (request.isPresent()) {
+      String hash = request.get().get(PAYER_RETURN_REQUEST_NAME_HMAC);
+      String payId = request.get().get(PAYER_RETURN_REQUEST_NAME_PAY_ID);
+      String transId = request.get().get(PAYER_RETURN_REQUEST_NAME_TRANS_ID);
+      String merchantId = request.get().get(PAYER_RETURN_REQUEST_NAME_MERCHANT_ID);
+      String status = request.get().get(PAYER_RETURN_REQUEST_NAME_STATUS);
+      String code = request.get().get(PAYER_RETURN_REQUEST_NAME_CODE);
+      if ((hash != null) && (payId != null) && (transId != null) && (merchantId != null)
+          && (status != null) && (code != null)) {
+        return isCallbackHashValid(hash, payId, transId, merchantId, status, code);
+      } else {
+        LOGGER.warn("isCallbackHashValid: missing parameter(s) to verify HMAC! {}=[{}], {}=[{}], "
+            + "{}=[{}], {}=[{}], {}=[{}], {}=[{}]", PAYER_RETURN_REQUEST_NAME_HMAC, hash,
+            PAYER_RETURN_REQUEST_NAME_PAY_ID, payId, PAYER_RETURN_REQUEST_NAME_TRANS_ID, transId,
+            PAYER_RETURN_REQUEST_NAME_MERCHANT_ID, merchantId, PAYER_RETURN_REQUEST_NAME_STATUS,
+            status, PAYER_RETURN_REQUEST_NAME_CODE, code);
+      }
+    }
+    return false;
+  }
 
   public boolean isCallbackHashValid(@NotNull String hash, @NotNull String payId,
       @NotNull String transId, @NotNull String merchantId, @NotNull String status,
       @NotNull String code) {
     return computopService.isCallbackHashValid(hash, payId, transId, merchantId, status, code);
+  }
+
+  public @NotNull EncryptedComputopData encryptPaymentData(@NotNull String transactionId,
+      @Nullable String orderDescription, double amount, @Nullable String currency) {
+    try {
+      if (transactionId != null) {
+        return computopService.encryptPaymentData(transactionId, orderDescription, new BigDecimal(
+            amount), currency);
+      } else {
+        LOGGER.warn("encryptPaymentData called with transaction ID 'null'");
+      }
+    } catch (ComputopCryptoException cce) {
+      LOGGER.error("Exception encrypting computop data transId [{}], orderDesc [{}], amount [{}], "
+          + "currency [{}]", transactionId, orderDescription, amount, currency, cce);
+    } catch (NumberFormatException nfe) {
+      LOGGER.error("Invalid amount [{}]", amount, nfe);
+    }
+    return new EncryptedComputopData("", -1);
+  }
+
+  public @NotNull String getPayFormAction(double amount) {
+    if (amount > 0) {
+      return configSrc.getProperty(ComputopServiceRole.COMPUTOP_PAYFORM_ACTION_URL, "");
+    }
+    return configSrc.getProperty(ComputopServiceRole.CELEMENTS_PAYFORM_ACTION_URL, "");
+  }
+
+  /**
+   * This method is meant for testing purposes only. In a production environment it is discouraged
+   * to use Velocity to handle payment callbacks. A Java implementation should be used instead.
+   *
+   * @return A map containing the decrypted callback data (keys are lower case, number and name of
+   *         keys depends on Computop and may vary)
+   * @throws ComputopCryptoException
+   *           thrown if the decryption fails
+   */
+  public @NotNull Map<String, String> decryptPaymentData() throws ComputopCryptoException {
+    Optional<XWikiRequest> request = modelContext.getRequest();
+    if (request.isPresent()) {
+      String cipherText = nullToEmpty(request.get().get(FORM_INPUT_NAME_DATA));
+      int plainDataLength = -1;
+      try {
+        Integer.parseInt(nullToEmpty(request.get().get(FORM_INPUT_NAME_LENGTH)));
+      } catch (NumberFormatException nfe) {
+        LOGGER.debug("Exception parsing number from param [{}]=[{}]", FORM_INPUT_NAME_LENGTH,
+            request.get().get(FORM_INPUT_NAME_LENGTH), nfe);
+      }
+      EncryptedComputopData encryptedData = new EncryptedComputopData(cipherText, plainDataLength);
+      return computopService.decryptCallbackData(encryptedData);
+    }
+    return Collections.emptyMap();
   }
 }
