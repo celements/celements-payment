@@ -49,6 +49,9 @@ public class ComputopScriptService implements ScriptService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ComputopScriptService.class);
 
+  public static final String COMPUTOP_PAYFORM_ACTION_URL = "computop_paymform_action_url";
+  public static final String CELEMENTS_PAYFORM_ACTION_URL = "celements_paymform_action_url";
+
   @Requirement
   private ComputopServiceRole computopService;
 
@@ -112,9 +115,9 @@ public class ComputopScriptService implements ScriptService {
 
   public @NotNull String getPayFormAction(double amount) {
     if (amount > 0) {
-      return configSrc.getProperty(ComputopServiceRole.COMPUTOP_PAYFORM_ACTION_URL, "");
+      return configSrc.getProperty(COMPUTOP_PAYFORM_ACTION_URL, "");
     }
-    return configSrc.getProperty(ComputopServiceRole.CELEMENTS_PAYFORM_ACTION_URL, "");
+    return configSrc.getProperty(CELEMENTS_PAYFORM_ACTION_URL, "");
   }
 
   /**
