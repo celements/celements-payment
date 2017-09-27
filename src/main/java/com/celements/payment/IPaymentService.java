@@ -38,8 +38,10 @@ public interface IPaymentService {
   @NotNull
   String getRequestParam(@NotNull String key);
 
-  public @NotNull String serializeHeaderFromRequest();
+  @NotNull
+  String serializeHeaderFromRequest();
 
-  public @NotNull String serializeParameterMapFromRequest();
+  @NotNull
+  String serializeParameterMapFromRequest();
 
 }
