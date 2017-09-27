@@ -224,18 +224,14 @@ public class ComputopService implements ComputopServiceRole {
   }
 
   @Override
-  public void storeCallback() {
+  public void storeCallback() throws ComputopCryptoException, XWikiException {
     // TODO check for callback request
     if (context.getRequest().isPresent()) {
-      try {
-        LOGGER.info("received computop callback");
-        Computop computopObj = createComputopObjectFromRequest();
-        paymentService.storePaymentObject(computopObj);
-        // FIXME move execution of callbackAction to general async processing of callback
-        processCallback(computopObj);
-      } catch (XWikiException exp) {
-        LOGGER.error("Failed to store computop object", exp);
-      }
+      LOGGER.info("received computop callback");
+      Computop computopObj = createComputopObjectFromRequest();
+      paymentService.storePaymentObject(computopObj);
+      // FIXME move callback processing to general async thread
+      executeCallbackAction(computopObj);
     }
   }
 
@@ -250,8 +246,16 @@ public class ComputopService implements ComputopServiceRole {
     return computopObj;
   }
 
-  private void processCallback(Computop computopObj) {
-    // TODO
+  @Override
+  public void executeCallbackAction(Computop computopObj) throws ComputopCryptoException,
+      XWikiException {
+    EncryptedComputopData encryptedData = new EncryptedComputopData(computopObj.getData(),
+        computopObj.getLength());
+    Map<String, String> decryptedData = decryptCallbackData(encryptedData);
+    // TODO SYNCEL-26 verify callback
+    computopObj.setTxnId(decryptedData.get(FORM_INPUT_NAME_TRANS_ID));
+    paymentService.storePaymentObject(computopObj);
+    // TODO SYNCEL-26 save to BaseObject
   }
 
 }

@@ -30,6 +30,8 @@ import org.xwiki.component.annotation.ComponentRole;
 
 import com.celements.payment.container.EncryptedComputopData;
 import com.celements.payment.exception.ComputopCryptoException;
+import com.celements.payment.raw.Computop;
+import com.xpn.xwiki.XWikiException;
 
 @ComponentRole
 public interface ComputopServiceRole {
@@ -175,6 +177,9 @@ public interface ComputopServiceRole {
   public @NotNull Map<String, String> decryptCallbackData(
       @NotNull EncryptedComputopData encryptedData) throws ComputopCryptoException;
 
-  void storeCallback();
+  void storeCallback() throws ComputopCryptoException, XWikiException;
+
+  void executeCallbackAction(@NotNull Computop computopObj) throws ComputopCryptoException,
+      XWikiException;
 
 }

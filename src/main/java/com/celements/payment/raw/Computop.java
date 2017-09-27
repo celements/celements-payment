@@ -22,8 +22,10 @@ package com.celements.payment.raw;
 import static com.google.common.base.MoreObjects.*;
 import static com.google.common.base.Strings.*;
 
+import javax.annotation.Nullable;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
+import javax.validation.constraints.NotNull;
 
 public class Computop implements PaymentRawObject {
 
@@ -55,31 +57,31 @@ public class Computop implements PaymentRawObject {
     this.id = id;
   }
 
-  public String getOrigHeader() {
+  public @NotNull String getOrigHeader() {
     return origHeader;
   }
 
-  public void setOrigHeader(String origHeader) {
+  public void setOrigHeader(@Nullable String origHeader) {
     this.origHeader = nullToEmpty(origHeader);
   }
 
-  public String getOrigMessage() {
+  public @NotNull String getOrigMessage() {
     return origMessage;
   }
 
-  public void setOrigMessage(String origMessage) {
+  public void setOrigMessage(@Nullable String origMessage) {
     this.origMessage = nullToEmpty(origMessage);
   }
 
-  public String getTxnId() {
+  public @NotNull String getTxnId() {
     return txnId;
   }
 
-  public void setTxnId(String txnId) {
+  public void setTxnId(@Nullable String txnId) {
     this.txnId = nullToEmpty(txnId);
   }
 
-  public String getMerchantId() {
+  public @NotNull String getMerchantId() {
     return merchantId;
   }
 
@@ -95,19 +97,19 @@ public class Computop implements PaymentRawObject {
     this.length = length;
   }
 
-  public String getData() {
+  public @NotNull String getData() {
     return data;
   }
 
-  public void setData(String data) {
+  public void setData(@Nullable String data) {
     this.data = nullToEmpty(data);
   }
 
-  public EProcessStatus getProcessStatus() {
+  public @NotNull EProcessStatus getProcessStatus() {
     return processStatus;
   }
 
-  public void setProcessStatus(EProcessStatus processStatus) {
+  public void setProcessStatus(@Nullable EProcessStatus processStatus) {
     this.processStatus = firstNonNull(processStatus, EProcessStatus.Unknown);
   }
 
