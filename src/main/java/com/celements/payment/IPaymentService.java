@@ -25,15 +25,15 @@ import javax.validation.constraints.NotNull;
 
 import org.xwiki.component.annotation.ComponentRole;
 
+import com.celements.payment.exception.PaymentException;
 import com.celements.payment.raw.PaymentRawObject;
-import com.xpn.xwiki.XWikiException;
 
 @ComponentRole
 public interface IPaymentService {
 
   void executePaymentAction(@NotNull Map<String, String[]> data);
 
-  void storePaymentObject(@NotNull PaymentRawObject paymentObj) throws XWikiException;
+  void storePaymentObject(@NotNull PaymentRawObject paymentObj) throws PaymentException;
 
   @NotNull
   String getRequestParam(@NotNull String key);

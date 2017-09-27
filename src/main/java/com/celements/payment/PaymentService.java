@@ -34,6 +34,7 @@ import org.xwiki.component.annotation.Requirement;
 import org.xwiki.model.reference.DocumentReference;
 
 import com.celements.model.context.ModelContext;
+import com.celements.payment.exception.PaymentException;
 import com.celements.payment.raw.PaymentRawObject;
 import com.celements.web.plugin.api.CelementsWebPluginApi;
 import com.google.common.base.Functions;
@@ -84,15 +85,19 @@ public class PaymentService implements IPaymentService {
   }
 
   @Override
-  public void storePaymentObject(final PaymentRawObject paymentObj) throws XWikiException {
-    hibStore.executeWrite(context.getXWikiContext(), true, new HibernateCallback<Void>() {
+  public void storePaymentObject(final PaymentRawObject paymentObj) throws PaymentException {
+    try {
+      hibStore.executeWrite(context.getXWikiContext(), true, new HibernateCallback<Void>() {
 
-      @Override
-      public Void doInHibernate(Session session) throws HibernateException {
-        session.saveOrUpdate(paymentObj);
-        return null;
-      }
-    });
+        @Override
+        public Void doInHibernate(Session session) throws HibernateException {
+          session.saveOrUpdate(paymentObj);
+          return null;
+        }
+      });
+    } catch (XWikiException xwe) {
+      throw new PaymentException(xwe);
+    }
   }
 
   @Override
