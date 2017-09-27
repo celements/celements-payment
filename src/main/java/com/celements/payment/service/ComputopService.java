@@ -22,6 +22,7 @@ package com.celements.payment.service;
 
 import static com.google.common.base.Preconditions.*;
 import static com.google.common.base.Strings.*;
+import static java.lang.Math.*;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -167,8 +168,9 @@ public class ComputopService implements ComputopServiceRole {
     byte[] decodedCipher = BaseEncoding.base16().decode(cs);
     try {
       Cipher cipher = getCipher(Cipher.DECRYPT_MODE, BLOWFISH_ECB_UNPADDED, key);
-      byte[] deciphered = Arrays.copyOfRange(cipher.doFinal(decodedCipher), 0,
-          encryptedCallback.getPlainDataLength());
+      int len = encryptedCallback.getPlainDataLength();
+      byte[] unpadded = cipher.doFinal(decodedCipher);
+      byte[] deciphered = Arrays.copyOfRange(unpadded, 0, min(max(len, 0), unpadded.length));
       LOGGER.debug("decryped plain [{}]", new String(deciphered));
       return deciphered;
     } catch (IllegalBlockSizeException | BadPaddingException excp) {

@@ -132,7 +132,7 @@ public class ComputopScriptService implements ScriptService {
       String cipherText = nullToEmpty(request.get().get(FORM_INPUT_NAME_DATA));
       int plainDataLength = -1;
       try {
-        Integer.parseInt(nullToEmpty(request.get().get(FORM_INPUT_NAME_LENGTH)));
+        plainDataLength = Integer.parseInt(nullToEmpty(request.get().get(FORM_INPUT_NAME_LENGTH)));
       } catch (NumberFormatException nfe) {
         LOGGER.debug("Exception parsing number from param [{}]=[{}]", FORM_INPUT_NAME_LENGTH,
             request.get().get(FORM_INPUT_NAME_LENGTH), nfe);
