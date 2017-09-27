@@ -76,8 +76,9 @@ public class ComputopService implements ComputopServiceRole {
   static final String HMAC_SECRET_KEY_PROP = "computop_hmac_secret_key";
 
   enum ReturnUrl {
-    SUCCESS("computop_return_url_success", "URLSuccess"), FAILURE("computop_return_url_failure",
-        "URLFailure"), CALLBACK("computop_return_url_callback", "URLNotify");
+    SUCCESS("computop_return_url_success", "URLSuccess"),
+    FAILURE("computop_return_url_failure", "URLFailure"),
+    CALLBACK("computop_return_url_callback", "URLNotify");
 
     private final String value;
     private final String param;
@@ -145,8 +146,7 @@ public class ComputopService implements ComputopServiceRole {
     String dataPlainText = getPaymentDataPlainString(transactionId, orderDescription, amount,
         currency);
     String cipherData = encryptString(dataPlainText.getBytes(), getBlowfishKey());
-    return new EncryptedComputopData(Optional.fromNullable(cipherData).or(""),
-        dataPlainText.length());
+    return new EncryptedComputopData(cipherData, dataPlainText.length());
   }
 
   @Override

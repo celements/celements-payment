@@ -110,7 +110,7 @@ public class ComputopScriptService implements ScriptService {
     } catch (NumberFormatException nfe) {
       LOGGER.error("Invalid amount [{}]", amount, nfe);
     }
-    return new EncryptedComputopData("", -1);
+    return new EncryptedComputopData(null, -1);
   }
 
   public @NotNull String getPayFormAction(double amount) {
@@ -132,7 +132,7 @@ public class ComputopScriptService implements ScriptService {
   public @NotNull Map<String, String> decryptPaymentData() throws ComputopCryptoException {
     Optional<XWikiRequest> request = modelContext.getRequest();
     if (request.isPresent()) {
-      String cipherText = nullToEmpty(request.get().get(FORM_INPUT_NAME_DATA));
+      String cipherText = request.get().get(FORM_INPUT_NAME_DATA);
       int plainDataLength = -1;
       try {
         plainDataLength = Integer.parseInt(nullToEmpty(request.get().get(FORM_INPUT_NAME_LENGTH)));
