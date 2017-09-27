@@ -22,13 +22,23 @@ package com.celements.payment.service;
 
 import static com.google.common.base.Preconditions.*;
 import static com.google.common.base.Strings.*;
+import static java.lang.Math.*;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.Mac;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import javax.validation.constraints.NotNull;
 
@@ -38,6 +48,10 @@ import org.xwiki.component.annotation.Component;
 import org.xwiki.component.annotation.Requirement;
 import org.xwiki.configuration.ConfigurationSource;
 
+import com.celements.payment.container.EncryptedComputopData;
+import com.celements.payment.exception.ComputopCryptoException;
+import com.google.common.base.Optional;
+import com.google.common.base.Splitter;
 import com.google.common.io.BaseEncoding;
 
 @Component
@@ -45,11 +59,39 @@ public class ComputopService implements ComputopServiceRole {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ComputopService.class);
 
+  static final String MERCHANT_ID_PROP = "computop_merchant_id";
+
+  static final String BLOWFISH = "Blowfish";
+  static final String BLOWFISH_ECB_PADDED = BLOWFISH + "/ECB/PKCS5Padding";
+  static final String BLOWFISH_ECB_UNPADDED = BLOWFISH + "/ECB/NoPadding";
+  static final String BLOWFISH_SECRET_KEY_PROP = "computop_blowfish_secret_key";
+
   static final String HMAC_SHA256 = "HmacSHA256";
   static final String HMAC_SECRET_KEY_PROP = "computop_hmac_secret_key";
 
+  enum ReturnUrl {
+    SUCCESS("computop_return_url_success", "URLSuccess"), FAILURE("computop_return_url_failure",
+        "URLFailure"), CALLBACK("computop_return_url_callback", "URLNotify");
+
+    private final String value;
+    private final String param;
+
+    private ReturnUrl(String value, String param) {
+      this.value = value;
+      this.param = param;
+    }
+
+    public @NotNull String getValue() {
+      return value;
+    }
+
+    public @NotNull String getParamName() {
+      return param;
+    }
+  }
+
   @Requirement
-  ConfigurationSource configSrc;
+  private ConfigurationSource configSrc;
 
   @Override
   public boolean isCallbackHashValid(String hash, String payId, String transId, String merchantId,
@@ -68,14 +110,7 @@ public class ComputopService implements ComputopServiceRole {
   public String getPaymentDataHmac(String payId, String transId, String merchantId,
       BigDecimal amount, String currency) {
     return hashPaymentData(nullToEmpty(payId) + "*" + nullToEmpty(transId) + "*" + nullToEmpty(
-        merchantId) + "*" + getAmount(amount) + "*" + nullToEmpty(currency));
-  }
-
-  String getAmount(BigDecimal amount) {
-    if (amount != null) {
-      return amount.setScale(2, RoundingMode.HALF_UP).toPlainString();
-    }
-    return "";
+        merchantId) + "*" + getFormatedAmountString(amount) + "*" + nullToEmpty(currency));
   }
 
   String hashPaymentData(@NotNull String paymentData) {
@@ -92,8 +127,125 @@ public class ComputopService implements ComputopServiceRole {
     return "";
   }
 
+  @Override
+  public EncryptedComputopData encryptPaymentData(String transactionId, String orderDescription,
+      BigDecimal amount, String currency) throws ComputopCryptoException {
+    String dataPlainText = getPaymentDataPlainString(transactionId, orderDescription, amount,
+        currency);
+    String cipherData = encryptString(dataPlainText.getBytes(), getBlowfishKey());
+    return new EncryptedComputopData(Optional.fromNullable(cipherData).or(""),
+        dataPlainText.length());
+  }
+
+  @Override
+  public Map<String, String> decryptCallbackData(EncryptedComputopData encryptedCallback)
+      throws ComputopCryptoException {
+    checkNotNull(encryptedCallback);
+    byte[] decryptedData = decryptString(encryptedCallback, getBlowfishKey());
+    Map<String, String> callbackData = new HashMap<>();
+    for (String parameter : Splitter.on("&").omitEmptyStrings().split(new String(decryptedData))) {
+      List<String> keyValue = Splitter.on("=").limit(2).splitToList(parameter);
+      String key = keyValue.get(0).toLowerCase();
+      if (keyValue.size() > 1) {
+        callbackData.put(key, keyValue.get(1));
+      } else {
+        callbackData.put(key, "");
+      }
+    }
+    return callbackData;
+  }
+
+  String getPaymentDataPlainString(String transactionId, String orderDescription, BigDecimal amount,
+      String currency) {
+    checkNotNull(transactionId);
+    checkNotNull(amount);
+    currency = Optional.fromNullable(currency).or(DEFAULT_CURRENCY);
+    String merchantId = getMerchantId();
+    StringBuilder sb = new StringBuilder();
+    appendQueryParameter(sb, FORM_INPUT_NAME_MERCHANT_ID, merchantId);
+    appendQueryParameter(sb, FORM_INPUT_NAME_TRANS_ID, transactionId);
+    appendQueryParameter(sb, FORM_INPUT_NAME_AMOUNT, getFormatedAmountString(amount));
+    appendQueryParameter(sb, FORM_INPUT_NAME_CURRENCY, currency);
+    appendQueryParameter(sb, FORM_INPUT_NAME_DESCRIPTION, orderDescription);
+    appendQueryParameter(sb, FORM_INPUT_NAME_HMAC, getPaymentDataHmac(null, transactionId,
+        merchantId, amount, currency));
+    appendQueryParameter(sb, ReturnUrl.SUCCESS.getParamName(), getReturnUrl(ReturnUrl.SUCCESS));
+    appendQueryParameter(sb, ReturnUrl.FAILURE.getParamName(), getReturnUrl(ReturnUrl.FAILURE));
+    appendQueryParameter(sb, ReturnUrl.CALLBACK.getParamName(), getReturnUrl(ReturnUrl.CALLBACK));
+    return sb.toString();
+  }
+
+  void appendQueryParameter(StringBuilder sb, String key, String value) {
+    sb.append(key).append("=").append(value).append("&");
+  }
+
+  @NotNull
+  String encryptString(byte[] plainText, final SecretKey key) throws ComputopCryptoException {
+    LOGGER.debug("encrypting plain [{}]", new String(plainText));
+    try {
+      String cipherText = BaseEncoding.base16().encode(getCipher(Cipher.ENCRYPT_MODE,
+          BLOWFISH_ECB_PADDED, key).doFinal(plainText));
+      LOGGER.debug("encrypted cipher [{}]", cipherText);
+      return cipherText;
+    } catch (IllegalBlockSizeException | BadPaddingException excp) {
+      throw new ComputopCryptoException("Exception encrypting message", excp);
+    }
+  }
+
+  byte[] decryptString(EncryptedComputopData encryptedCallback, final SecretKey key)
+      throws ComputopCryptoException {
+    if (encryptedCallback.getCipherText().isPresent()) {
+      CharSequence cs = encryptedCallback.getCipherText().get().toUpperCase();
+      LOGGER.debug("decrypting cipher [{}]", cs);
+      byte[] decodedCipher = BaseEncoding.base16().decode(cs);
+      try {
+        Cipher cipher = getCipher(Cipher.DECRYPT_MODE, BLOWFISH_ECB_UNPADDED, key);
+        int len = encryptedCallback.getPlainDataLength();
+        byte[] unpadded = cipher.doFinal(decodedCipher);
+        byte[] deciphered = Arrays.copyOfRange(unpadded, 0, min(max(len, 0), unpadded.length));
+        LOGGER.debug("decryped plain [{}]", new String(deciphered));
+        return deciphered;
+      } catch (IllegalBlockSizeException | BadPaddingException excp) {
+        throw new ComputopCryptoException("Exception decrypting message", excp);
+      }
+    } else {
+      throw new ComputopCryptoException("Ciphertext to decrypted is absent");
+    }
+  }
+
+  Cipher getCipher(int cipherMode, final String algorithm, final SecretKey key)
+      throws ComputopCryptoException {
+    try {
+      Cipher cipher = Cipher.getInstance(algorithm);
+      cipher.init(cipherMode, key);
+      return cipher;
+    } catch (NoSuchAlgorithmException | InvalidKeyException | NoSuchPaddingException excp) {
+      throw new ComputopCryptoException("Exception creating encryption cipher", excp);
+    }
+  }
+
+  String getFormatedAmountString(BigDecimal amount) {
+    if (amount != null) {
+      return amount.setScale(2, RoundingMode.HALF_UP).toPlainString();
+    }
+    return "";
+  }
+
   byte[] getHmacKey() {
     return configSrc.getProperty(HMAC_SECRET_KEY_PROP, "").getBytes();
+  }
+
+  SecretKey getBlowfishKey() {
+    String secretKey = configSrc.getProperty(BLOWFISH_SECRET_KEY_PROP, "");
+    return new SecretKeySpec(secretKey.getBytes(), BLOWFISH);
+  }
+
+  String getMerchantId() {
+    return configSrc.getProperty(MERCHANT_ID_PROP, "");
+  }
+
+  String getReturnUrl(ReturnUrl urlType) {
+    return configSrc.getProperty(urlType.getValue(), "");
   }
 
 }
