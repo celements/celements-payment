@@ -47,8 +47,11 @@ import org.slf4j.LoggerFactory;
 import org.xwiki.component.annotation.Component;
 import org.xwiki.component.annotation.Requirement;
 import org.xwiki.configuration.ConfigurationSource;
+import org.xwiki.model.reference.DocumentReference;
+import org.xwiki.model.reference.SpaceReference;
 
 import com.celements.model.context.ModelContext;
+import com.celements.model.util.References;
 import com.celements.payment.IPaymentService;
 import com.celements.payment.container.EncryptedComputopData;
 import com.celements.payment.exception.ComputopCryptoException;
@@ -61,6 +64,8 @@ import com.xpn.xwiki.XWikiException;
 
 @Component
 public class ComputopService implements ComputopServiceRole {
+
+  private static final String CFG_PROP_ORDER_SPACE = "computop_order_space";
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ComputopService.class);
 
@@ -107,6 +112,10 @@ public class ComputopService implements ComputopServiceRole {
     return "";
   }
 
+  private byte[] getHmacKey() {
+    return configSrc.getProperty(HMAC_SECRET_KEY_PROP, "").getBytes();
+  }
+
   @Override
   public EncryptedComputopData encryptPaymentData(String transactionId, String orderDescription,
       BigDecimal amount, String currency) throws ComputopCryptoException {
@@ -135,6 +144,11 @@ public class ComputopService implements ComputopServiceRole {
     return callbackData;
   }
 
+  private SecretKey getBlowfishKey() {
+    String secretKey = configSrc.getProperty(BLOWFISH_SECRET_KEY_PROP, "");
+    return new SecretKeySpec(secretKey.getBytes(), BLOWFISH);
+  }
+
   String getPaymentDataPlainString(String transactionId, String orderDescription, BigDecimal amount,
       String currency) {
     checkNotNull(transactionId);
@@ -153,6 +167,17 @@ public class ComputopService implements ComputopServiceRole {
     appendQueryParameter(sb, ReturnUrl.FAILURE.getParamName(), getReturnUrl(ReturnUrl.FAILURE));
     appendQueryParameter(sb, ReturnUrl.CALLBACK.getParamName(), getReturnUrl(ReturnUrl.CALLBACK));
     return sb.toString();
+  }
+
+  private String getFormatedAmountString(BigDecimal amount) {
+    if (amount != null) {
+      return amount.setScale(2, RoundingMode.HALF_UP).toPlainString();
+    }
+    return "";
+  }
+
+  private String getReturnUrl(ReturnUrl urlType) {
+    return configSrc.getProperty(urlType.getValue(), "");
   }
 
   void appendQueryParameter(StringBuilder sb, String key, String value) {
@@ -199,28 +224,23 @@ public class ComputopService implements ComputopServiceRole {
     }
   }
 
-  String getFormatedAmountString(BigDecimal amount) {
-    if (amount != null) {
-      return amount.setScale(2, RoundingMode.HALF_UP).toPlainString();
-    }
-    return "";
+  @Override
+  public String getMerchantId() {
+    String merchantId = nullToEmpty(configSrc.getProperty(MERCHANT_ID_PROP, ""));
+    checkArgument(!merchantId.isEmpty(), MERCHANT_ID_PROP + " not configured");
+    return merchantId;
   }
 
-  byte[] getHmacKey() {
-    return configSrc.getProperty(HMAC_SECRET_KEY_PROP, "").getBytes();
+  @Override
+  public SpaceReference getOrderSpaceRef() {
+    String orderSpaceName = nullToEmpty(configSrc.getProperty(CFG_PROP_ORDER_SPACE, ""));
+    checkArgument(!orderSpaceName.isEmpty(), CFG_PROP_ORDER_SPACE + " not configured");
+    return References.create(SpaceReference.class, orderSpaceName, context.getWikiRef());
   }
 
-  SecretKey getBlowfishKey() {
-    String secretKey = configSrc.getProperty(BLOWFISH_SECRET_KEY_PROP, "");
-    return new SecretKeySpec(secretKey.getBytes(), BLOWFISH);
-  }
-
-  String getMerchantId() {
-    return configSrc.getProperty(MERCHANT_ID_PROP, "");
-  }
-
-  String getReturnUrl(ReturnUrl urlType) {
-    return configSrc.getProperty(urlType.getValue(), "");
+  @Override
+  public DocumentReference getOrderDocRef(String transactionId) {
+    return References.create(DocumentReference.class, transactionId, getOrderSpaceRef());
   }
 
   @Override
