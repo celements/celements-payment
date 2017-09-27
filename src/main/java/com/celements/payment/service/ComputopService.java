@@ -101,7 +101,7 @@ public class ComputopService implements ComputopServiceRole {
   IPaymentService paymentService;
 
   @Requirement
-  ConfigurationSource configSrc;
+  private ConfigurationSource configSrc;
 
   @Requirement
   ModelContext context;

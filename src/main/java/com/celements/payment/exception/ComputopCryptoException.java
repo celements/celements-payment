@@ -10,6 +10,7 @@ public class ComputopCryptoException extends PaymentException {
 
   public ComputopCryptoException(String msg, Throwable cause) {
     super(msg, cause);
+
   }
 
 }
