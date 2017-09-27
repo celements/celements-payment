@@ -108,15 +108,16 @@ public class ComputopService implements ComputopServiceRole {
     return configSrc.getProperty(HMAC_SECRET_KEY_PROP, "").getBytes();
   }
 
+  @Override
   public void storeCallback() {
     // TODO check for callback request
     if (context.getRequest().isPresent()) {
-      LOGGER.info("received computop callback");
-      Computop computopObj = createComputopObjectFromRequest();
       try {
+        LOGGER.info("received computop callback");
+        Computop computopObj = createComputopObjectFromRequest();
         paymentService.storePaymentObject(computopObj);
         // FIXME move execution of callbackAction to general async processing of callback
-        // TODO execute callback action
+        processCallback(computopObj);
       } catch (XWikiException exp) {
         LOGGER.error("Failed to store computop object", exp);
       }
@@ -132,6 +133,10 @@ public class ComputopService implements ComputopServiceRole {
     computopObj.setData(paymentService.getRequestParam("Data"));
     computopObj.setProcessStatus(EProcessStatus.New);
     return computopObj;
+  }
+
+  private void processCallback(Computop computopObj) {
+    // TODO
   }
 
 }

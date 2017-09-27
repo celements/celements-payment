@@ -71,4 +71,6 @@ public interface ComputopServiceRole {
       @Nullable String transId, @Nullable String merchantId, @Nullable String status,
       @Nullable String code);
 
+  void storeCallback();
+
 }

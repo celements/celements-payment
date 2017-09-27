@@ -19,11 +19,11 @@
  */
 package com.celements.payment.raw;
 
+import static com.google.common.base.MoreObjects.*;
+import static com.google.common.base.Strings.*;
+
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
-
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Strings;
 
 public class Computop implements PaymentRawObject {
 
@@ -60,7 +60,7 @@ public class Computop implements PaymentRawObject {
   }
 
   public void setOrigHeader(String origHeader) {
-    this.origHeader = Strings.nullToEmpty(origHeader);
+    this.origHeader = nullToEmpty(origHeader);
   }
 
   public String getOrigMessage() {
@@ -68,7 +68,7 @@ public class Computop implements PaymentRawObject {
   }
 
   public void setOrigMessage(String origMessage) {
-    this.origMessage = Strings.nullToEmpty(origMessage);
+    this.origMessage = nullToEmpty(origMessage);
   }
 
   public String getTxnId() {
@@ -76,7 +76,7 @@ public class Computop implements PaymentRawObject {
   }
 
   public void setTxnId(String txnId) {
-    this.txnId = Strings.nullToEmpty(txnId);
+    this.txnId = nullToEmpty(txnId);
   }
 
   public String getMerchantId() {
@@ -84,7 +84,7 @@ public class Computop implements PaymentRawObject {
   }
 
   public void setMerchantId(String merchantId) {
-    this.merchantId = Strings.nullToEmpty(merchantId);
+    this.merchantId = nullToEmpty(merchantId);
   }
 
   public int getLength() {
@@ -100,7 +100,7 @@ public class Computop implements PaymentRawObject {
   }
 
   public void setData(String data) {
-    this.data = Strings.nullToEmpty(data);
+    this.data = nullToEmpty(data);
   }
 
   public EProcessStatus getProcessStatus() {
@@ -108,7 +108,7 @@ public class Computop implements PaymentRawObject {
   }
 
   public void setProcessStatus(EProcessStatus processStatus) {
-    this.processStatus = MoreObjects.firstNonNull(processStatus, EProcessStatus.Unknown);
+    this.processStatus = firstNonNull(processStatus, EProcessStatus.Unknown);
   }
 
 }
