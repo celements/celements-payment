@@ -272,10 +272,18 @@ public class ComputopService implements ComputopServiceRole {
     EncryptedComputopData encryptedData = new EncryptedComputopData(computopObj.getData(),
         computopObj.getLength());
     Map<String, String> decryptedData = decryptCallbackData(encryptedData);
+    String transId = getValue(decryptedData, "transid");
+    boolean isValid = isCallbackHashValid(getValue(decryptedData, "mac"), getValue(decryptedData,
+        "payid"), transId, getValue(decryptedData, "mid"), getValue(decryptedData, "status"),
+        getValue(decryptedData, "code"));
     // TODO SYNCEL-26 verify callback
-    computopObj.setTxnId(decryptedData.get(FORM_INPUT_NAME_TRANS_ID));
+    computopObj.setTxnId(transId);
     paymentService.storePaymentObject(computopObj);
     // TODO SYNCEL-26 save to BaseObject
+  }
+
+  private String getValue(Map<String, String> decryptedData, String key) {
+    return decryptedData.get(configSrc.getProperty("computop_request_key_" + key, key));
   }
 
 }
