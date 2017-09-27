@@ -52,12 +52,12 @@ import com.celements.model.context.ModelContext;
 import com.celements.payment.IPaymentService;
 import com.celements.payment.container.EncryptedComputopData;
 import com.celements.payment.exception.ComputopCryptoException;
+import com.celements.payment.exception.PaymentException;
 import com.celements.payment.raw.Computop;
 import com.celements.payment.raw.EProcessStatus;
 import com.google.common.base.Optional;
 import com.google.common.base.Splitter;
 import com.google.common.io.BaseEncoding;
-import com.xpn.xwiki.XWikiException;
 
 @Component
 public class ComputopService implements ComputopServiceRole {
@@ -224,14 +224,15 @@ public class ComputopService implements ComputopServiceRole {
   }
 
   @Override
-  public void storeCallback() throws ComputopCryptoException, XWikiException {
-    // TODO check for callback request
-    if (context.getRequest().isPresent()) {
-      LOGGER.info("received computop callback");
-      Computop computopObj = createComputopObjectFromRequest();
+  public void storeCallback() throws ComputopCryptoException, PaymentException {
+    LOGGER.info("received computop callback");
+    Computop computopObj = createComputopObjectFromRequest();
+    if (!computopObj.getData().isEmpty()) {
       paymentService.storePaymentObject(computopObj);
       // FIXME move callback processing to general async thread
       executeCallbackAction(computopObj);
+    } else {
+      throw new PaymentException("empty callback data");
     }
   }
 
@@ -239,16 +240,16 @@ public class ComputopService implements ComputopServiceRole {
     Computop computopObj = new Computop();
     computopObj.setOrigHeader(paymentService.serializeHeaderFromRequest());
     computopObj.setOrigMessage(paymentService.serializeParameterMapFromRequest());
-    computopObj.setMerchantId(paymentService.getRequestParam("MerchantID"));
-    computopObj.setLength(NumberUtils.toInt(paymentService.getRequestParam("Length"), 0));
-    computopObj.setData(paymentService.getRequestParam("Data"));
+    computopObj.setLength(NumberUtils.toInt(paymentService.getRequestParam(FORM_INPUT_NAME_LENGTH),
+        0));
+    computopObj.setData(paymentService.getRequestParam(FORM_INPUT_NAME_DATA));
     computopObj.setProcessStatus(EProcessStatus.New);
     return computopObj;
   }
 
   @Override
   public void executeCallbackAction(Computop computopObj) throws ComputopCryptoException,
-      XWikiException {
+      PaymentException {
     EncryptedComputopData encryptedData = new EncryptedComputopData(computopObj.getData(),
         computopObj.getLength());
     Map<String, String> decryptedData = decryptCallbackData(encryptedData);
