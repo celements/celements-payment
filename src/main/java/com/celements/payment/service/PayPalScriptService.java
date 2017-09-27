@@ -49,8 +49,7 @@ import com.xpn.xwiki.web.XWikiRequest;
 @Component("payPal")
 public class PayPalScriptService implements ScriptService {
 
-  private static Log LOGGER = LogFactory.getFactory().getInstance(
-      PayPalScriptService.class);
+  private static Log LOGGER = LogFactory.getFactory().getInstance(PayPalScriptService.class);
 
   @Requirement
   IPayPalService payPalService;
@@ -65,11 +64,10 @@ public class PayPalScriptService implements ScriptService {
   Execution execution;
 
   private XWikiContext getContext() {
-    return (XWikiContext)execution.getContext().getProperty("xwikicontext");
+    return (XWikiContext) execution.getContext().getProperty("xwikicontext");
   }
 
-  private SimpleDateFormat paymentDateFormat = new SimpleDateFormat(
-      "HH:mm:ss MMM dd, yyyy zz");
+  private SimpleDateFormat paymentDateFormat = new SimpleDateFormat("HH:mm:ss MMM dd, yyyy zz");
 
   public void storePayPalCallback() {
     String txnId = getRequestParam("txn_id");
@@ -78,7 +76,7 @@ public class PayPalScriptService implements ScriptService {
       PayPal payPalObj = createPayPalObjFromRequest();
       try {
         payPalService.storePayPalObject(payPalObj, true);
-        //FIXME move execution of callbackAction to general async processing of callback
+        // FIXME move execution of callbackAction to general async processing of callback
         executeCallbackAction(getContext().getRequest().getParameterMap());
       } catch (XWikiException exp) {
         LOGGER.error("Failed to store paypal object for txn_id [" + txnId + "].", exp);
@@ -99,12 +97,12 @@ public class PayPalScriptService implements ScriptService {
 
   @SuppressWarnings("unchecked")
   public void executeCallbackAction(Map parameterMap) {
-    Map<String, String[]> data = new HashMap<String, String[]>();
+    Map<String, String[]> data = new HashMap<>();
     data.putAll(parameterMap);
     if (parameterMap.containsKey("custom")) {
       String customValue = data.get("custom")[0];
       if ((customValue != null) && (!"".equals(customValue))) {
-        //shoppingCartDoc.fullName;$user
+        // shoppingCartDoc.fullName;$user
         String[] customValueSplit = customValue.split(";");
         if (customValueSplit.length > 1) {
           String cartDocFN = customValueSplit[0];
@@ -190,8 +188,7 @@ public class PayPalScriptService implements ScriptService {
     return origMessageBuffer.toString();
   }
 
-  private void addParamToStringBuffer(StringBuffer stringBuffer, String key,
-      String[] values) {
+  private void addParamToStringBuffer(StringBuffer stringBuffer, String key, String[] values) {
     String valueStr = "";
     if (values.length == 1) {
       valueStr = values[0];
@@ -202,14 +199,14 @@ public class PayPalScriptService implements ScriptService {
   }
 
   private Map<String, String[]> convertToMap(String origMessage) {
-    Map<String, String[]> paramMap = new HashMap<String, String[]>();
+    Map<String, String[]> paramMap = new HashMap<>();
     for (String line : origMessage.split("\n")) {
       String[] pair = line.split("=");
       String value = "";
       if (pair.length > 1) {
         value = pair[1];
       }
-      String[] params = new String[] {value};
+      String[] params = new String[] { value };
       paramMap.put(pair[0], params);
     }
     return paramMap;
