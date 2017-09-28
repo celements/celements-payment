@@ -66,50 +66,36 @@ import com.google.common.io.BaseEncoding;
 @Component
 public class ComputopService implements ComputopServiceRole {
 
-  private static final String CFG_PROP_ORDER_SPACE = "computop_order_space";
-
   private static final Logger LOGGER = LoggerFactory.getLogger(ComputopService.class);
-
-  static final String MERCHANT_ID_PROP = "computop_merchant_id";
 
   static final String BLOWFISH = "Blowfish";
   static final String BLOWFISH_ECB_PADDED = BLOWFISH + "/ECB/PKCS5Padding";
   static final String BLOWFISH_ECB_UNPADDED = BLOWFISH + "/ECB/NoPadding";
-  static final String BLOWFISH_SECRET_KEY_PROP = "computop_blowfish_secret_key";
-
   static final String HMAC_SHA256 = "HmacSHA256";
-  static final String HMAC_SECRET_KEY_PROP = "computop_hmac_secret_key";
 
-  enum ReturnUrl {
-    SUCCESS("computop_return_url_success", "URLSuccess"),
-    FAILURE("computop_return_url_failure", "URLFailure"),
-    CALLBACK("computop_return_url_callback", "URLNotify");
+  static final String CFG_PROP_MERCHANT_ID = "computop_merchant_id";
+  static final String CFG_PROP_ORDER_SPACE = "computop_order_space";
+  static final String CFG_PROP_BLOWFISH_SECRET_KEY = "computop_blowfish_secret_key";
+  static final String CFG_PROP_HMAC_SECRET_KEY = "computop_hmac_secret_key";
 
-    private final String value;
-    private final String param;
-
-    private ReturnUrl(String value, String param) {
-      this.value = value;
-      this.param = param;
-    }
-
-    public @NotNull String getValue() {
-      return value;
-    }
-
-    public @NotNull String getParamName() {
-      return param;
-    }
-  }
+  static final String DATA_KEY_STATUS = "status";
+  static final String DATA_KEY_DESCR = "description";
+  static final String DATA_KEY_XID = "xid";
+  static final String DATA_KEY_MAC = "mac";
+  static final String DATA_KEY_CODE = "code";
+  static final String DATA_KEY_PAYID = "payid";
+  static final String DATA_KEY_MID = "mid";
+  static final String DATA_KEY_TYPE = "type";
+  static final String DATA_KEY_TRANSID = "transid";
 
   @Requirement
-  IPaymentService paymentService;
+  private IPaymentService paymentService;
 
   @Requirement
   private ConfigurationSource configSrc;
 
   @Requirement
-  ModelContext context;
+  private ModelContext context;
 
   @Override
   public boolean isCallbackHashValid(String hash, String payId, String transId, String merchantId,
@@ -146,7 +132,7 @@ public class ComputopService implements ComputopServiceRole {
   }
 
   private byte[] getHmacKey() {
-    return configSrc.getProperty(HMAC_SECRET_KEY_PROP, "").getBytes();
+    return configSrc.getProperty(CFG_PROP_HMAC_SECRET_KEY, "").getBytes();
   }
 
   @Override
@@ -177,7 +163,7 @@ public class ComputopService implements ComputopServiceRole {
   }
 
   private SecretKey getBlowfishKey() {
-    String secretKey = configSrc.getProperty(BLOWFISH_SECRET_KEY_PROP, "");
+    String secretKey = configSrc.getProperty(CFG_PROP_BLOWFISH_SECRET_KEY, "");
     return new SecretKeySpec(secretKey.getBytes(), BLOWFISH);
   }
 
@@ -201,14 +187,14 @@ public class ComputopService implements ComputopServiceRole {
     return sb.toString();
   }
 
-  private String getFormatedAmountString(BigDecimal amount) {
+  String getFormatedAmountString(BigDecimal amount) {
     if (amount != null) {
       return amount.setScale(2, RoundingMode.HALF_UP).toPlainString();
     }
     return "";
   }
 
-  private String getReturnUrl(ReturnUrl urlType) {
+  String getReturnUrl(ReturnUrl urlType) {
     return configSrc.getProperty(urlType.getValue(), "");
   }
 
@@ -263,8 +249,8 @@ public class ComputopService implements ComputopServiceRole {
 
   @Override
   public String getMerchantId() {
-    String merchantId = nullToEmpty(configSrc.getProperty(MERCHANT_ID_PROP, ""));
-    checkArgument(!merchantId.isEmpty(), MERCHANT_ID_PROP + " not configured");
+    String merchantId = nullToEmpty(configSrc.getProperty(CFG_PROP_MERCHANT_ID, ""));
+    checkArgument(!merchantId.isEmpty(), CFG_PROP_MERCHANT_ID + " not configured");
     return merchantId;
   }
 
@@ -314,21 +300,45 @@ public class ComputopService implements ComputopServiceRole {
   @Override
   public void executeCallbackAction(Computop computopObj) throws ComputopCryptoException,
       PaymentException {
-    EncryptedComputopData encryptedData = new EncryptedComputopData(computopObj.getData(),
-        computopObj.getLength());
-    Map<String, String> decryptedData = decryptCallbackData(encryptedData);
-    String transId = getValue(decryptedData, "transid");
-    boolean isValid = isCallbackHashValid(getValue(decryptedData, "mac"), getValue(decryptedData,
-        "payid"), transId, getValue(decryptedData, "mid"), getValue(decryptedData, "status"),
-        getValue(decryptedData, "code"));
-    // TODO SYNCEL-26 verify callback
-    computopObj.setTxnId(transId);
-    paymentService.storePaymentObject(computopObj);
+    Map<String, String> data = decryptCallbackData(new EncryptedComputopData(computopObj.getData(),
+        computopObj.getLength()));
+    String transId = getDataValue(data, DATA_KEY_TRANSID);
+    if (!transId.isEmpty()) {
+      computopObj.setTxnId(transId);
+      paymentService.storePaymentObject(computopObj);
+    } else {
+      // TODO
+    }
+    boolean isValid = isCallbackHashValid(getDataValue(data, DATA_KEY_MAC), getDataValue(data,
+        DATA_KEY_PAYID), transId, getDataValue(data, DATA_KEY_MID), getDataValue(data,
+            DATA_KEY_STATUS), getDataValue(data, DATA_KEY_CODE));
     // TODO SYNCEL-26 save to BaseObject
   }
 
-  private String getValue(Map<String, String> decryptedData, String key) {
-    return decryptedData.get(configSrc.getProperty("computop_request_key_" + key, key));
+  private String getDataValue(Map<String, String> data, String key) {
+    return nullToEmpty(data.get(configSrc.getProperty("computop_data_key_" + key, key)));
+  }
+
+  enum ReturnUrl {
+    SUCCESS("computop_return_url_success", "URLSuccess"),
+    FAILURE("computop_return_url_failure", "URLFailure"),
+    CALLBACK("computop_return_url_callback", "URLNotify");
+
+    private final String value;
+    private final String param;
+
+    private ReturnUrl(String value, String param) {
+      this.value = value;
+      this.param = param;
+    }
+
+    public @NotNull String getValue() {
+      return value;
+    }
+
+    public @NotNull String getParamName() {
+      return param;
+    }
   }
 
 }

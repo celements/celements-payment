@@ -145,11 +145,14 @@ public interface ComputopServiceRole {
   public @NotNull Map<String, String> decryptCallbackData(
       @NotNull EncryptedComputopData encryptedData) throws ComputopCryptoException;
 
+  @NotNull
   String getMerchantId();
 
+  @NotNull
   SpaceReference getOrderSpaceRef();
 
-  DocumentReference getOrderDocRef(String transactionId);
+  @NotNull
+  DocumentReference getOrderDocRef(@NotNull String transactionId);
 
   void storeCallback() throws ComputopCryptoException, PaymentException;
 
