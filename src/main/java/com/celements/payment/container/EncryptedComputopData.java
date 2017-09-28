@@ -1,9 +1,12 @@
 package com.celements.payment.container;
 
+import static com.google.common.base.Strings.*;
+
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.validation.constraints.NotNull;
 
-import com.google.common.base.Preconditions;
+import com.google.common.base.Optional;
 
 @Immutable
 public class EncryptedComputopData {
@@ -11,14 +14,13 @@ public class EncryptedComputopData {
   private final String cipherText;
   private final int plainDataLength;
 
-  public EncryptedComputopData(@NotNull String cipherText, int plainDataLength) {
-    Preconditions.checkNotNull(cipherText);
-    this.cipherText = cipherText;
+  public EncryptedComputopData(@Nullable String cipherText, int plainDataLength) {
+    this.cipherText = emptyToNull(cipherText);
     this.plainDataLength = plainDataLength;
   }
 
-  public @NotNull String getCipherText() {
-    return cipherText;
+  public @NotNull Optional<String> getCipherText() {
+    return Optional.fromNullable(cipherText);
   }
 
   public int getPlainDataLength() {
@@ -26,10 +28,11 @@ public class EncryptedComputopData {
   }
 
   public @NotNull String getData() {
-    return getCipherText();
+    return getCipherText().or("");
   }
 
   public int getLen() {
     return getPlainDataLength();
   }
+
 }

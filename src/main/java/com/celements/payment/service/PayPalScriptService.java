@@ -37,6 +37,7 @@ import org.xwiki.model.reference.DocumentReference;
 import org.xwiki.script.service.ScriptService;
 
 import com.celements.payment.IPaymentService;
+import com.celements.payment.PaymentService;
 import com.celements.payment.raw.EProcessStatus;
 import com.celements.payment.raw.PayPal;
 import com.celements.web.service.IWebUtilsService;
@@ -162,6 +163,10 @@ public class PayPalScriptService implements ScriptService {
     return getContext().getRequest().get(key);
   }
 
+  /**
+   * @deprecated instead use {@link PaymentService#serializeHeaderFromRequest()}
+   */
+  @Deprecated
   @SuppressWarnings("unchecked")
   String getOrigHeader(XWikiRequest request) {
     StringBuffer origHeaderBuffer = new StringBuffer();
@@ -175,6 +180,10 @@ public class PayPalScriptService implements ScriptService {
     return origHeaderBuffer.toString();
   }
 
+  /**
+   * @deprecated instead use {@link PaymentService#serializeParameterMapFromRequest()}
+   */
+  @Deprecated
   @SuppressWarnings("unchecked")
   String getOrigMessage(XWikiRequest request) {
     StringBuffer origMessageBuffer = new StringBuffer();
