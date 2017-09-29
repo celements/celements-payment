@@ -55,7 +55,6 @@ import org.xwiki.model.reference.SpaceReference;
 
 import com.celements.model.access.IModelAccessFacade;
 import com.celements.model.access.exception.DocumentSaveException;
-import com.celements.model.classes.ClassDefinition;
 import com.celements.model.context.ModelContext;
 import com.celements.model.object.xwiki.XWikiObjectEditor;
 import com.celements.model.util.References;
@@ -129,9 +128,6 @@ public class ComputopService implements ComputopServiceRole {
 
   @Requirement
   private ConfigurationSource configSrc;
-
-  @Requirement(CLASS_DEF_HINT)
-  private ClassDefinition computopPaymentClass;
 
   @Requirement
   private ModelContext context;
@@ -240,7 +236,7 @@ public class ComputopService implements ComputopServiceRole {
   }
 
   String getReturnUrl(ReturnUrl urlType) {
-    return configSrc.getProperty(urlType.getValue(), "");
+    return getCfgPropertyNonEmpty(urlType.getValue());
   }
 
   void appendQueryParameter(StringBuilder sb, String key, String value) {
@@ -319,17 +315,11 @@ public class ComputopService implements ComputopServiceRole {
     return References.create(DocumentReference.class, transactionId, getPaymentSpaceRef());
   }
 
-  private String getCfgPropertyNonEmpty(String key) {
-    String value = nullToEmpty(configSrc.getProperty(key, ""));
-    checkArgument(!value.isEmpty(), key + " not configured");
-    return value;
-  }
-
   @Override
   public void storeCallback() throws ComputopCryptoException, PaymentException {
-    LOGGER.info("received computop callback");
     Computop computopObj = createComputopObjectFromRequest();
     if (!computopObj.getData().isEmpty()) {
+      LOGGER.info("storeCallback: '{}'", computopObj);
       paymentService.storePaymentObject(computopObj);
       // FIXME move callback processing to general async thread
       executeCallbackAction(computopObj);
@@ -359,8 +349,10 @@ public class ComputopService implements ComputopServiceRole {
   @Override
   public void executeCallbackAction(Computop computopObj) throws ComputopCryptoException,
       PaymentException {
+    LOGGER.info("executeCallbackAction: '{}'", computopObj);
     Map<String, String> data = decryptCallbackData(new EncryptedComputopData(computopObj.getData(),
         computopObj.getLength()));
+    LOGGER.trace("executeCallbackAction: with data '{}'", data);
     String transId = getDataValue(data, DATA_KEY_TRANSID);
     if (!transId.isEmpty()) {
       boolean verified = isCallbackHashValid(data);
@@ -398,6 +390,12 @@ public class ComputopService implements ComputopServiceRole {
 
   private String getDataValue(Map<String, String> data, String key) {
     return nullToEmpty(data.get(configSrc.getProperty("computop_data_key_" + key, key)));
+  }
+
+  private String getCfgPropertyNonEmpty(String key) {
+    String value = nullToEmpty(configSrc.getProperty(key, ""));
+    checkArgument(!value.isEmpty(), key + " not configured");
+    return value;
   }
 
 }

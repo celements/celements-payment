@@ -150,6 +150,7 @@ public class ComputopScriptService implements ScriptService {
   public boolean storeCallback() {
     try {
       computopService.storeCallback();
+      LOGGER.info("storeCallback called");
       return true;
     } catch (PaymentException exc) {
       LOGGER.error("storeCallback failed", exc);
