@@ -59,7 +59,6 @@ import com.celements.model.context.ModelContext;
 import com.celements.model.object.xwiki.XWikiObjectEditor;
 import com.celements.model.util.References;
 import com.celements.payment.IPaymentService;
-import com.celements.payment.classes.ComputopPaymentClass.Status;
 import com.celements.payment.container.EncryptedComputopData;
 import com.celements.payment.exception.ComputopCryptoException;
 import com.celements.payment.exception.PaymentException;
@@ -67,7 +66,6 @@ import com.celements.payment.raw.Computop;
 import com.celements.payment.raw.EProcessStatus;
 import com.google.common.base.Optional;
 import com.google.common.base.Splitter;
-import com.google.common.collect.ImmutableList;
 import com.google.common.io.BaseEncoding;
 import com.xpn.xwiki.doc.XWikiDocument;
 import com.xpn.xwiki.objects.BaseObject;
@@ -380,11 +378,11 @@ public class ComputopService implements ComputopServiceRole {
     modelAccess.setProperty(paymentObj, FIELD_PAY_ID, getDataValue(data, DATA_KEY_PAYID));
     modelAccess.setProperty(paymentObj, FIELD_X_ID, getDataValue(data, DATA_KEY_XID));
     modelAccess.setProperty(paymentObj, FIELD_DESCRIPTION, getDataValue(data, DATA_KEY_DESCR));
-    modelAccess.setProperty(paymentObj, FIELD_STATUS, ImmutableList.of(Status.resolve(getDataValue(
-        data, DATA_KEY_STATUS))));
+    modelAccess.setProperty(paymentObj, FIELD_STATUS, getDataValue(data, DATA_KEY_STATUS));
     modelAccess.setProperty(paymentObj, FIELD_ERROR_CODE, NumberUtils.toInt(getDataValue(data,
         DATA_KEY_CODE), -1));
     modelAccess.setProperty(paymentObj, FIELD_VERIFIED, verified);
+    modelAccess.setProperty(paymentObj, FIELD_DATA, data.toString());
     modelAccess.saveDocument(paymentDoc, "add computop payment object");
   }
 
