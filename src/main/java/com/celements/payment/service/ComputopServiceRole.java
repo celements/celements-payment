@@ -154,6 +154,12 @@ public interface ComputopServiceRole {
   @NotNull
   DocumentReference getOrderDocRef(@NotNull String transactionId);
 
+  @NotNull
+  SpaceReference getPaymentSpaceRef();
+
+  @NotNull
+  DocumentReference getPaymentDocRef(@NotNull String transactionId);
+
   void storeCallback() throws ComputopCryptoException, PaymentException;
 
   void executeCallbackAction(@NotNull Computop computopObj) throws ComputopCryptoException,

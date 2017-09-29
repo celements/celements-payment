@@ -1,5 +1,7 @@
 package com.celements.payment.service;
 
+import static com.celements.payment.classes.ComputopPaymentClass.*;
+
 /*
  * See the NOTICE file distributed with this work for additional
  * information regarding copyright ownership.
@@ -51,9 +53,14 @@ import org.xwiki.configuration.ConfigurationSource;
 import org.xwiki.model.reference.DocumentReference;
 import org.xwiki.model.reference.SpaceReference;
 
+import com.celements.model.access.IModelAccessFacade;
+import com.celements.model.access.exception.DocumentSaveException;
+import com.celements.model.classes.ClassDefinition;
 import com.celements.model.context.ModelContext;
+import com.celements.model.object.xwiki.XWikiObjectEditor;
 import com.celements.model.util.References;
 import com.celements.payment.IPaymentService;
+import com.celements.payment.classes.ComputopPaymentClass.Status;
 import com.celements.payment.container.EncryptedComputopData;
 import com.celements.payment.exception.ComputopCryptoException;
 import com.celements.payment.exception.PaymentException;
@@ -61,7 +68,10 @@ import com.celements.payment.raw.Computop;
 import com.celements.payment.raw.EProcessStatus;
 import com.google.common.base.Optional;
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
 import com.google.common.io.BaseEncoding;
+import com.xpn.xwiki.doc.XWikiDocument;
+import com.xpn.xwiki.objects.BaseObject;
 
 @Component
 public class ComputopService implements ComputopServiceRole {
@@ -75,6 +85,7 @@ public class ComputopService implements ComputopServiceRole {
 
   static final String CFG_PROP_MERCHANT_ID = "computop_merchant_id";
   static final String CFG_PROP_ORDER_SPACE = "computop_order_space";
+  static final String CFG_PROP_PAYMENT_SPACE = "computop_payment_space";
   static final String CFG_PROP_BLOWFISH_SECRET_KEY = "computop_blowfish_secret_key";
   static final String CFG_PROP_HMAC_SECRET_KEY = "computop_hmac_secret_key";
 
@@ -92,7 +103,13 @@ public class ComputopService implements ComputopServiceRole {
   private IPaymentService paymentService;
 
   @Requirement
+  private IModelAccessFacade modelAccess;
+
+  @Requirement
   private ConfigurationSource configSrc;
+
+  @Requirement(CLASS_DEF_HINT)
+  private ClassDefinition computopPaymentClass;
 
   @Requirement
   private ModelContext context;
@@ -108,6 +125,12 @@ public class ComputopService implements ComputopServiceRole {
       return false;
     }
     return true;
+  }
+
+  private boolean isCallbackHashValid(Map<String, String> data) {
+    return isCallbackHashValid(getDataValue(data, DATA_KEY_MAC), getDataValue(data, DATA_KEY_PAYID),
+        getDataValue(data, DATA_KEY_TRANSID), getDataValue(data, DATA_KEY_MID), getDataValue(data,
+            DATA_KEY_STATUS), getDataValue(data, DATA_KEY_CODE));
   }
 
   @Override
@@ -132,7 +155,7 @@ public class ComputopService implements ComputopServiceRole {
   }
 
   private byte[] getHmacKey() {
-    return configSrc.getProperty(CFG_PROP_HMAC_SECRET_KEY, "").getBytes();
+    return getCfgPropertyNonEmpty(CFG_PROP_HMAC_SECRET_KEY).getBytes();
   }
 
   @Override
@@ -163,8 +186,8 @@ public class ComputopService implements ComputopServiceRole {
   }
 
   private SecretKey getBlowfishKey() {
-    String secretKey = configSrc.getProperty(CFG_PROP_BLOWFISH_SECRET_KEY, "");
-    return new SecretKeySpec(secretKey.getBytes(), BLOWFISH);
+    return new SecretKeySpec(getCfgPropertyNonEmpty(CFG_PROP_BLOWFISH_SECRET_KEY).getBytes(),
+        BLOWFISH);
   }
 
   String getPaymentDataPlainString(String transactionId, String orderDescription, BigDecimal amount,
@@ -249,21 +272,35 @@ public class ComputopService implements ComputopServiceRole {
 
   @Override
   public String getMerchantId() {
-    String merchantId = nullToEmpty(configSrc.getProperty(CFG_PROP_MERCHANT_ID, ""));
-    checkArgument(!merchantId.isEmpty(), CFG_PROP_MERCHANT_ID + " not configured");
-    return merchantId;
+    return getCfgPropertyNonEmpty(CFG_PROP_MERCHANT_ID);
   }
 
   @Override
   public SpaceReference getOrderSpaceRef() {
-    String orderSpaceName = nullToEmpty(configSrc.getProperty(CFG_PROP_ORDER_SPACE, ""));
-    checkArgument(!orderSpaceName.isEmpty(), CFG_PROP_ORDER_SPACE + " not configured");
-    return References.create(SpaceReference.class, orderSpaceName, context.getWikiRef());
+    return References.create(SpaceReference.class, getCfgPropertyNonEmpty(CFG_PROP_ORDER_SPACE),
+        context.getWikiRef());
   }
 
   @Override
   public DocumentReference getOrderDocRef(String transactionId) {
     return References.create(DocumentReference.class, transactionId, getOrderSpaceRef());
+  }
+
+  @Override
+  public SpaceReference getPaymentSpaceRef() {
+    return References.create(SpaceReference.class, getCfgPropertyNonEmpty(CFG_PROP_PAYMENT_SPACE),
+        context.getWikiRef());
+  }
+
+  @Override
+  public DocumentReference getPaymentDocRef(String transactionId) {
+    return References.create(DocumentReference.class, transactionId, getPaymentSpaceRef());
+  }
+
+  private String getCfgPropertyNonEmpty(String key) {
+    String value = nullToEmpty(configSrc.getProperty(key, ""));
+    checkArgument(!value.isEmpty(), key + " not configured");
+    return value;
   }
 
   @Override
@@ -304,15 +341,35 @@ public class ComputopService implements ComputopServiceRole {
         computopObj.getLength()));
     String transId = getDataValue(data, DATA_KEY_TRANSID);
     if (!transId.isEmpty()) {
+      boolean verified = isCallbackHashValid(data);
       computopObj.setTxnId(transId);
+      computopObj.setProcessStatus(verified ? EProcessStatus.Verified : EProcessStatus.Unverified);
       paymentService.storePaymentObject(computopObj);
+      try {
+        storePaymentData(transId, verified, data);
+      } catch (DocumentSaveException dse) {
+        throw new PaymentException(dse);
+      }
     } else {
-      // TODO
+      throw new PaymentException("No transId for: " + computopObj);
     }
-    boolean isValid = isCallbackHashValid(getDataValue(data, DATA_KEY_MAC), getDataValue(data,
-        DATA_KEY_PAYID), transId, getDataValue(data, DATA_KEY_MID), getDataValue(data,
-            DATA_KEY_STATUS), getDataValue(data, DATA_KEY_CODE));
-    // TODO SYNCEL-26 save to BaseObject
+  }
+
+  private void storePaymentData(String transId, boolean verified, Map<String, String> data)
+      throws DocumentSaveException {
+    XWikiDocument paymentDoc = modelAccess.getOrCreateDocument(getPaymentDocRef(transId));
+    BaseObject paymentObj = XWikiObjectEditor.on(paymentDoc).filter(FIELD_TRANS_ID,
+        transId).createFirstIfNotExists();
+    modelAccess.setProperty(paymentObj, FIELD_MERCHANT_ID, getDataValue(data, DATA_KEY_MID));
+    modelAccess.setProperty(paymentObj, FIELD_PAY_ID, getDataValue(data, DATA_KEY_PAYID));
+    modelAccess.setProperty(paymentObj, FIELD_X_ID, getDataValue(data, DATA_KEY_XID));
+    modelAccess.setProperty(paymentObj, FIELD_DESCRIPTION, getDataValue(data, DATA_KEY_DESCR));
+    modelAccess.setProperty(paymentObj, FIELD_STATUS, ImmutableList.of(Status.resolve(getDataValue(
+        data, DATA_KEY_STATUS))));
+    modelAccess.setProperty(paymentObj, FIELD_ERROR_CODE, NumberUtils.toInt(getDataValue(data,
+        DATA_KEY_CODE), -1));
+    modelAccess.setProperty(paymentObj, FIELD_VERIFIED, verified);
+    modelAccess.saveDocument(paymentDoc, "add computop payment object");
   }
 
   private String getDataValue(Map<String, String> data, String key) {
