@@ -94,16 +94,6 @@ public class ComputopScriptService implements ScriptService {
     return computopService.isCallbackHashValid(hash, payId, transId, merchantId, status, code);
   }
 
-  /**
-   * Use discouraged, instead use int for the amount
-   */
-  /* Double is used here, since cart item saves the amount as float */
-  @Deprecated
-  public @NotNull EncryptedComputopData encryptPaymentData(@NotNull String transactionId,
-      @Nullable String orderDescription, float amount, @Nullable String currency) {
-    return encryptPaymentData(transactionId, orderDescription, Math.round(amount), currency);
-  }
-
   public @NotNull EncryptedComputopData encryptPaymentData(@NotNull String transactionId,
       @Nullable String orderDescription, int amount, @Nullable String currency) {
     try {
@@ -120,7 +110,17 @@ public class ComputopScriptService implements ScriptService {
     return new EncryptedComputopData("", -1);
   }
 
-  /* Double is used here, since cart item saves the amount as float */
+  /**
+   * Use discouraged, instead use int for the amount
+   */
+  /* Float is used here, since cart item saves the amount as floating point number */
+  @Deprecated
+  public @NotNull EncryptedComputopData encryptPaymentData(@NotNull String transactionId,
+      @Nullable String orderDescription, float amount, @Nullable String currency) {
+    return encryptPaymentData(transactionId, orderDescription, Math.round(amount), currency);
+  }
+
+  /* Double is used here, since cart item saves the amount as floating point number */
   public @NotNull String getPayFormAction(double amount) {
     if (amount > 0) {
       return configSrc.getProperty(COMPUTOP_PAYFORM_ACTION_URL, "");
