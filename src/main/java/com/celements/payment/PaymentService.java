@@ -53,9 +53,6 @@ public class PaymentService implements IPaymentService {
   private static Logger LOGGER = LoggerFactory.getLogger(PaymentService.class);
 
   @Requirement
-  private XWikiHibernateStore hibStore;
-
-  @Requirement
   private ModelContext context;
 
   @Deprecated
@@ -87,7 +84,7 @@ public class PaymentService implements IPaymentService {
   @Override
   public void storePaymentObject(final PaymentRawObject paymentObj) throws PaymentException {
     try {
-      hibStore.executeWrite(context.getXWikiContext(), true, new HibernateCallback<Void>() {
+      getHibStore().executeWrite(context.getXWikiContext(), true, new HibernateCallback<Void>() {
 
         @Override
         public Void doInHibernate(Session session) throws HibernateException {
@@ -140,6 +137,10 @@ public class PaymentService implements IPaymentService {
       sb.append(values);
     }
     sb.append("\n");
+  }
+
+  XWikiHibernateStore getHibStore() {
+    return context.getXWikiContext().getWiki().getHibernateStore();
   }
 
 }
