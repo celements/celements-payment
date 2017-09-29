@@ -26,9 +26,6 @@ import static com.celements.payment.service.ComputopServiceRole.*;
 import static org.easymock.EasyMock.*;
 import static org.junit.Assert.*;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
@@ -68,10 +65,10 @@ public class ComputopServiceTest extends AbstractComponentTest {
 
   @Test
   public void testGetAmount() {
-    assertEquals("2.00", service.getFormatedAmountString(new BigDecimal(2)));
-    assertEquals("3.55", service.getFormatedAmountString(new BigDecimal(3.55D)));
-    assertEquals("21.30", service.getFormatedAmountString(new BigDecimal(21.3F)));
-    assertEquals("0.51", service.getFormatedAmountString(new BigDecimal(.51)));
+    assertEquals("200", service.getFormatedAmountString(200));
+    assertEquals("355", service.getFormatedAmountString(355));
+    assertEquals("2130", service.getFormatedAmountString(2130));
+    assertEquals("51", service.getFormatedAmountString(51));
   }
 
   @Test
@@ -86,23 +83,25 @@ public class ComputopServiceTest extends AbstractComponentTest {
 
   @Test
   public void testGetPaymentDataHmac() {
-    String paymentHmac = "1df273c64b4342265e92357f7f3fb1cdfbfbe3e3c89d2fb8d93c25411a1a2285";
+
+    String paymentHmac = "927c9bcc5eaee1ce9e904237c1c78ec746e99e14016d8fe1155e508e4b2ae2f8";
     expect(configSrcMock.getProperty(eq(CFG_PROP_HMAC_SECRET_KEY), eq(""))).andReturn(
         DEFAULT_HMAC_TEST_KEY);
     replayDefault();
-    assertEquals(paymentHmac, service.getPaymentDataHmac("payId", "transId", "merchantId",
-        new BigDecimal(23.3D), "CHF"));
+    assertEquals(paymentHmac, service.getPaymentDataHmac("payId", "transId", "merchantId", 2330,
+        "CHF"));
     verifyDefault();
   }
 
   @Test
   public void testGetPaymentDataHmac_nullField() {
-    String paymentHmac = "0678abd0cbc568254ab4a4ecff7beae7a1d3398cc106e2df50f815820c489a87";
+
+    String paymentHmac = "4c4b41b2f0f5de8c1a30006bfbadb0c1ebd2a320301feb1eed785de5bf6d506b";
     expect(configSrcMock.getProperty(eq(CFG_PROP_HMAC_SECRET_KEY), eq(""))).andReturn(
         DEFAULT_HMAC_TEST_KEY);
     replayDefault();
-    assertEquals(paymentHmac, service.getPaymentDataHmac(null, "transId", "merchantId",
-        new BigDecimal(23.3D), "CHF"));
+    assertEquals(paymentHmac, service.getPaymentDataHmac(null, "transId", "merchantId", 2330,
+        "CHF"));
     verifyDefault();
   }
 
@@ -163,7 +162,7 @@ public class ComputopServiceTest extends AbstractComponentTest {
     String merchantId = "merchant";
     String transactionId = "tid";
     String orderDescription = "1.35 meter of kilogram per hour";
-    BigDecimal amount = new BigDecimal(32.5);
+    int amount = 3250;
     String currency = "EUR";
     String successUrl = "https://server/success?test=x";
     String failureUrl = "https://server/failure";
@@ -180,10 +179,10 @@ public class ComputopServiceTest extends AbstractComponentTest {
     replayDefault();
     String hmac = service.getPaymentDataHmac(null, transactionId, merchantId, amount, currency);
     assertEquals(FORM_INPUT_NAME_MERCHANT_ID + "=" + merchantId + "&" + FORM_INPUT_NAME_TRANS_ID
-        + "=" + transactionId + "&" + FORM_INPUT_NAME_AMOUNT + "=" + amount.setScale(2,
-            RoundingMode.HALF_UP).toPlainString() + "&" + FORM_INPUT_NAME_CURRENCY + "=" + currency
-        + "&" + FORM_INPUT_NAME_DESCRIPTION + "=" + orderDescription + "&" + FORM_INPUT_NAME_HMAC
-        + "=" + hmac + "&" + ReturnUrl.SUCCESS.getParamName() + "=" + successUrl + "&"
+        + "=" + transactionId + "&" + FORM_INPUT_NAME_AMOUNT + "=" + amount + "&"
+        + FORM_INPUT_NAME_CURRENCY + "=" + currency + "&" + FORM_INPUT_NAME_DESCRIPTION + "="
+        + orderDescription + "&" + FORM_INPUT_NAME_HMAC + "=" + hmac + "&"
+        + ReturnUrl.SUCCESS.getParamName() + "=" + successUrl + "&"
         + ReturnUrl.FAILURE.getParamName() + "=" + failureUrl + "&"
         + ReturnUrl.CALLBACK.getParamName() + "=" + notifyUrl + "&",
         service.getPaymentDataPlainString(transactionId, orderDescription, amount, currency));

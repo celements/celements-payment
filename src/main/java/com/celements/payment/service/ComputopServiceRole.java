@@ -20,7 +20,6 @@ package com.celements.payment.service;
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
 
-import java.math.BigDecimal;
 import java.util.Map;
 
 import javax.annotation.Nullable;
@@ -70,13 +69,13 @@ public interface ComputopServiceRole {
    * @param merchantId
    *          The ID of the merchent receiving the payment
    * @param amount
-   *          Amount to be payed with 2 decimal
+   *          Amount to be payed in the smallest unit of the currency, e.g. cents for euros
    * @param currency
    *          Currency of the transaction
    * @return HMAC of the given data
    */
   public @NotNull String getPaymentDataHmac(@Nullable String payId, @Nullable String transId,
-      @Nullable String merchantId, @Nullable BigDecimal amount, @Nullable String currency);
+      @Nullable String merchantId, int amount, @Nullable String currency);
 
   /**
    * To verify the data returned to the success or failed URLs
@@ -126,7 +125,7 @@ public interface ComputopServiceRole {
    *           thrown if encryption fails with an Exception
    */
   public @NotNull EncryptedComputopData encryptPaymentData(@NotNull String transactionId,
-      @Nullable String orderDescription, @NotNull BigDecimal amount, @Nullable String currency)
+      @Nullable String orderDescription, int amount, @Nullable String currency)
       throws ComputopCryptoException;
 
   /**

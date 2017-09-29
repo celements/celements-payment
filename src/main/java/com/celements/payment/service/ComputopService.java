@@ -26,8 +26,6 @@ import static com.google.common.base.Preconditions.*;
 import static com.google.common.base.Strings.*;
 import static java.lang.Math.*;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
@@ -150,8 +148,8 @@ public class ComputopService implements ComputopServiceRole {
   }
 
   @Override
-  public String getPaymentDataHmac(String payId, String transId, String merchantId,
-      BigDecimal amount, String currency) {
+  public String getPaymentDataHmac(String payId, String transId, String merchantId, int amount,
+      String currency) {
     return hashPaymentData(nullToEmpty(payId) + "*" + nullToEmpty(transId) + "*" + nullToEmpty(
         merchantId) + "*" + getFormatedAmountString(amount) + "*" + nullToEmpty(currency));
   }
@@ -176,7 +174,7 @@ public class ComputopService implements ComputopServiceRole {
 
   @Override
   public EncryptedComputopData encryptPaymentData(String transactionId, String orderDescription,
-      BigDecimal amount, String currency) throws ComputopCryptoException {
+      int amount, String currency) throws ComputopCryptoException {
     String dataPlainText = getPaymentDataPlainString(transactionId, orderDescription, amount,
         currency);
     String cipherData = encryptString(dataPlainText.getBytes(), getBlowfishKey());
@@ -206,7 +204,7 @@ public class ComputopService implements ComputopServiceRole {
         BLOWFISH);
   }
 
-  String getPaymentDataPlainString(String transactionId, String orderDescription, BigDecimal amount,
+  String getPaymentDataPlainString(String transactionId, String orderDescription, int amount,
       String currency) {
     checkNotNull(transactionId);
     checkNotNull(amount);
@@ -226,11 +224,8 @@ public class ComputopService implements ComputopServiceRole {
     return sb.toString();
   }
 
-  String getFormatedAmountString(BigDecimal amount) {
-    if (amount != null) {
-      return amount.setScale(2, RoundingMode.HALF_UP).toPlainString();
-    }
-    return "";
+  String getFormatedAmountString(int amount) {
+    return Integer.toString(amount);
   }
 
   String getReturnUrl(ReturnUrl urlType) {
