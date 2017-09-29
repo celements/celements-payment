@@ -192,4 +192,36 @@
     </property>
   </class>
 
+  <class name="com.celements.payment.raw.Computop" table="cel_payment_computop">
+    <id name="id" type="integer" unsaved-value="undefined">
+      <column name="CPCT_ID" not-null="true" />
+      <generator class="increment" />
+    </id>
+    <property name="origHeader" type="text">
+      <column name="CPCT_ORIG_HEADER" />
+    </property>
+    <property name="origMessage" type="text">
+      <column name="CPCT_ORIG_MESSAGE" />
+    </property>
+    <property name="txnId" type="string">
+      <column name="CPCT_TXN_ID" />
+    </property>
+    <property name="merchantId" type="string">
+      <column name="CPCT_MERCHANT_ID" />
+    </property>
+    <property name="length" type="integer">
+      <column name="CPCT_LENGTH" />
+    </property>
+    <property name="data" type="text">
+      <column name="CPCT_DATA" />
+    </property>
+    <property name="processStatus" length="30">
+      <column name="CPCT_PROCESS_STATUS" />
+      <type name="org.hibernate.type.EnumType">
+        <param name="enumClass">com.celements.payment.raw.EProcessStatus</param>
+        <param name="type">12</param>
+      </type>
+    </property>
+  </class>
+
 </hibernate-mapping>

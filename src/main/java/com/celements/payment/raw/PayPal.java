@@ -24,7 +24,7 @@ import java.util.Date;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
 
-public class PayPal {
+public class PayPal implements PaymentRawObject {
 
   /**
    * transaction id is required

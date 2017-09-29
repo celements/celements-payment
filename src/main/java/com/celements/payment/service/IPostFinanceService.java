@@ -21,14 +21,20 @@ package com.celements.payment.service;
 
 import org.xwiki.component.annotation.ComponentRole;
 
+import com.celements.payment.PaymentService;
+import com.celements.payment.raw.PaymentRawObject;
 import com.celements.payment.raw.PostFinance;
 import com.xpn.xwiki.XWikiException;
 
 @ComponentRole
 public interface IPostFinanceService {
 
-  public void storePostFinanceObject(final PostFinance PostFinanceObj, boolean bTransaction
-      ) throws XWikiException;
+  /**
+   * @deprecated instead use {@link PaymentService#storePaymentObject(PaymentRawObject)}
+   */
+  @Deprecated
+  public void storePostFinanceObject(final PostFinance PostFinanceObj, boolean bTransaction)
+      throws XWikiException;
 
   public PostFinance loadPostFinanceObject(final String txnId) throws XWikiException;
 

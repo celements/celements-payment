@@ -21,11 +21,24 @@ package com.celements.payment;
 
 import java.util.Map;
 
+import javax.validation.constraints.NotNull;
+
 import org.xwiki.component.annotation.ComponentRole;
+
+import com.celements.payment.exception.PaymentException;
+import com.celements.payment.raw.PaymentRawObject;
 
 @ComponentRole
 public interface IPaymentService {
 
-  public void executePaymentAction(Map<String, String[]> data);
+  void executePaymentAction(@NotNull Map<String, String[]> data);
+
+  void storePaymentObject(@NotNull PaymentRawObject paymentObj) throws PaymentException;
+
+  @NotNull
+  String serializeHeaderFromRequest();
+
+  @NotNull
+  String serializeParameterMapFromRequest();
 
 }

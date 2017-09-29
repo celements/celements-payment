@@ -21,14 +21,19 @@ package com.celements.payment.service;
 
 import org.xwiki.component.annotation.ComponentRole;
 
+import com.celements.payment.PaymentService;
 import com.celements.payment.raw.PayPal;
+import com.celements.payment.raw.PaymentRawObject;
 import com.xpn.xwiki.XWikiException;
 
 @ComponentRole
 public interface IPayPalService {
 
-  public void storePayPalObject(final PayPal payPalObj, boolean bTransaction
-      ) throws XWikiException;
+  /**
+   * @deprecated instead use {@link PaymentService#storePaymentObject(PaymentRawObject)}
+   */
+  @Deprecated
+  public void storePayPalObject(final PayPal payPalObj, boolean bTransaction) throws XWikiException;
 
   public PayPal loadPayPalObject(final String txnId) throws XWikiException;
 

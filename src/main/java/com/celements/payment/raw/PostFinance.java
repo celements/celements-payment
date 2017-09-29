@@ -5,7 +5,7 @@ import java.util.Date;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
 
-public class PostFinance {
+public class PostFinance implements PaymentRawObject {
 
   /**
    * transaction id is required
@@ -23,9 +23,9 @@ public class PostFinance {
   private String payId = "";
 
   private String cardNumber = "";
-  
+
   private String expDate = "";
-  
+
   private String clientIP = "";
 
   private String cardholder = "";

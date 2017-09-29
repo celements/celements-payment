@@ -1,5 +1,7 @@
 package com.celements.payment.container;
 
+import static com.google.common.base.Strings.*;
+
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.validation.constraints.NotNull;
@@ -13,7 +15,7 @@ public class EncryptedComputopData {
   private final int plainDataLength;
 
   public EncryptedComputopData(@Nullable String cipherText, int plainDataLength) {
-    this.cipherText = cipherText;
+    this.cipherText = emptyToNull(cipherText);
     this.plainDataLength = plainDataLength;
   }
 
@@ -32,4 +34,5 @@ public class EncryptedComputopData {
   public int getLen() {
     return getPlainDataLength();
   }
+
 }

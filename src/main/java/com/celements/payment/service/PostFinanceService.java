@@ -39,54 +39,57 @@ import com.xpn.xwiki.store.XWikiHibernateStore;
 @Component
 public class PostFinanceService implements IPostFinanceService {
 
-  private static Log LOGGER = LogFactory.getFactory().getInstance(
-      PostFinanceService.class);
+  private static Log LOGGER = LogFactory.getFactory().getInstance(PostFinanceService.class);
 
   @Requirement
   Execution execution;
 
   private XWikiContext getContext() {
-    return (XWikiContext)execution.getContext().getProperty("xwikicontext");
+    return (XWikiContext) execution.getContext().getProperty("xwikicontext");
   }
 
-  public void storePostFinanceObject(final PostFinance PostFinanceObj, boolean bTransaction
-      ) throws XWikiException {
+  @Override
+  public void storePostFinanceObject(final PostFinance PostFinanceObj, boolean bTransaction)
+      throws XWikiException {
     getStore().executeWrite(getContext(), bTransaction,
         new XWikiHibernateBaseStore.HibernateCallback<Object>() {
-        public Object doInHibernate(Session session) throws HibernateException {
-          LOGGER.debug("in doInHibernate with session: " + session);
-          session.saveOrUpdate(PostFinanceObj);
-          LOGGER.debug("after saveOrUpdate in doInHibernate with session: " + session);
-          return null;
-        }
-      });
+
+          @Override
+          public Object doInHibernate(Session session) throws HibernateException {
+            LOGGER.debug("in doInHibernate with session: " + session);
+            session.saveOrUpdate(PostFinanceObj);
+            LOGGER.debug("after saveOrUpdate in doInHibernate with session: " + session);
+            return null;
+          }
+        });
   }
 
-//  /**
-//   * {@inheritDoc}
-//   */
-//  public List<StatusNode> loadPostFinanceObject(final long id,
-//      boolean bTransaction, XWikiContext context) throws XWikiException {
-//      return getStore(context).executeRead(context, bTransaction,
-//          new HibernateCallback<List<StatusNode>>() {
-//          @SuppressWarnings("unchecked")
-//          public List<StatusNode> doInHibernate(Session session
-//              ) throws HibernateException {
-//              try {
-//                  return session.createCriteria(StatusNode.class
-//                      ).add(Restrictions.eq("id.docId", Long.valueOf(id))
-//                      ).addOrder(Order.desc("id.version1")
-//                      ).addOrder(Order.desc("id.version2")
-//                     ).list();
-//              } catch (IllegalArgumentException ex) {
-//                  // This happens when the database has wrong values...
-//                  mLogger.warn("Invalid status protocol for document " + id);
-//                  return Collections.emptyList();
-//              }
-//          }
-//      });
-//  }
+  // /**
+  // * {@inheritDoc}
+  // */
+  // public List<StatusNode> loadPostFinanceObject(final long id,
+  // boolean bTransaction, XWikiContext context) throws XWikiException {
+  // return getStore(context).executeRead(context, bTransaction,
+  // new HibernateCallback<List<StatusNode>>() {
+  // @SuppressWarnings("unchecked")
+  // public List<StatusNode> doInHibernate(Session session
+  // ) throws HibernateException {
+  // try {
+  // return session.createCriteria(StatusNode.class
+  // ).add(Restrictions.eq("id.docId", Long.valueOf(id))
+  // ).addOrder(Order.desc("id.version1")
+  // ).addOrder(Order.desc("id.version2")
+  // ).list();
+  // } catch (IllegalArgumentException ex) {
+  // // This happens when the database has wrong values...
+  // mLogger.warn("Invalid status protocol for document " + id);
+  // return Collections.emptyList();
+  // }
+  // }
+  // });
+  // }
 
+  @Override
   public PostFinance loadPostFinanceObject(final String txnId) throws XWikiException {
     boolean bTransaction = true;
 
@@ -95,23 +98,20 @@ public class PostFinanceService implements IPostFinanceService {
 
     getStore().checkHibernate(getContext());
 
-    SessionFactory sfactory = getStore().injectCustomMappingsInSessionFactory(
-        getContext());
-    bTransaction = bTransaction && getStore().beginTransaction(sfactory, false,
-        getContext());
+    SessionFactory sfactory = getStore().injectCustomMappingsInSessionFactory(getContext());
+    bTransaction = bTransaction && getStore().beginTransaction(sfactory, false, getContext());
     Session session = getStore().getSession(getContext());
     session.setFlushMode(FlushMode.MANUAL);
 
     try {
-        session.load(postFinanceObj, postFinanceObj.getTxn_id());
+      session.load(postFinanceObj, postFinanceObj.getTxn_id());
     } catch (ObjectNotFoundException exp) {
       LOGGER.debug("no PostFinance object for txn_id [" + postFinanceObj.getTxn_id() + "] in"
           + " database [" + getContext().getDatabase() + "] found.");
       // No PostFinancel object in store
     }
     LOGGER.trace("successfully loaded PostFinance object for txn_id [" + postFinanceObj.getTxn_id()
-        + "] in database [" + getContext().getDatabase() + "] :"
-        + postFinanceObj.getOrigMessage());
+        + "] in database [" + getContext().getDatabase() + "] :" + postFinanceObj.getOrigMessage());
     return postFinanceObj;
   }
 

@@ -42,14 +42,20 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import javax.validation.constraints.NotNull;
 
+import org.apache.commons.lang.math.NumberUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xwiki.component.annotation.Component;
 import org.xwiki.component.annotation.Requirement;
 import org.xwiki.configuration.ConfigurationSource;
 
+import com.celements.model.context.ModelContext;
+import com.celements.payment.IPaymentService;
 import com.celements.payment.container.EncryptedComputopData;
 import com.celements.payment.exception.ComputopCryptoException;
+import com.celements.payment.exception.PaymentException;
+import com.celements.payment.raw.Computop;
+import com.celements.payment.raw.EProcessStatus;
 import com.google.common.base.Optional;
 import com.google.common.base.Splitter;
 import com.google.common.io.BaseEncoding;
@@ -70,8 +76,9 @@ public class ComputopService implements ComputopServiceRole {
   static final String HMAC_SECRET_KEY_PROP = "computop_hmac_secret_key";
 
   enum ReturnUrl {
-    SUCCESS("computop_return_url_success", "URLSuccess"), FAILURE("computop_return_url_failure",
-        "URLFailure"), CALLBACK("computop_return_url_callback", "URLNotify");
+    SUCCESS("computop_return_url_success", "URLSuccess"),
+    FAILURE("computop_return_url_failure", "URLFailure"),
+    CALLBACK("computop_return_url_callback", "URLNotify");
 
     private final String value;
     private final String param;
@@ -91,7 +98,13 @@ public class ComputopService implements ComputopServiceRole {
   }
 
   @Requirement
+  IPaymentService paymentService;
+
+  @Requirement
   private ConfigurationSource configSrc;
+
+  @Requirement
+  ModelContext context;
 
   @Override
   public boolean isCallbackHashValid(String hash, String payId, String transId, String merchantId,
@@ -133,8 +146,7 @@ public class ComputopService implements ComputopServiceRole {
     String dataPlainText = getPaymentDataPlainString(transactionId, orderDescription, amount,
         currency);
     String cipherData = encryptString(dataPlainText.getBytes(), getBlowfishKey());
-    return new EncryptedComputopData(Optional.fromNullable(cipherData).or(""),
-        dataPlainText.length());
+    return new EncryptedComputopData(cipherData, dataPlainText.length());
   }
 
   @Override
@@ -246,6 +258,49 @@ public class ComputopService implements ComputopServiceRole {
 
   String getReturnUrl(ReturnUrl urlType) {
     return configSrc.getProperty(urlType.getValue(), "");
+  }
+
+  @Override
+  public void storeCallback() throws ComputopCryptoException, PaymentException {
+    LOGGER.info("received computop callback");
+    Computop computopObj = createComputopObjectFromRequest();
+    if (!computopObj.getData().isEmpty()) {
+      paymentService.storePaymentObject(computopObj);
+      // FIXME move callback processing to general async thread
+      executeCallbackAction(computopObj);
+    } else {
+      throw new PaymentException("empty callback data");
+    }
+  }
+
+  private Computop createComputopObjectFromRequest() {
+    Computop computopObj = new Computop();
+    computopObj.setOrigHeader(paymentService.serializeHeaderFromRequest());
+    computopObj.setOrigMessage(paymentService.serializeParameterMapFromRequest());
+    computopObj.setLength(NumberUtils.toInt(getRequestParam(FORM_INPUT_NAME_LENGTH), 0));
+    computopObj.setData(getRequestParam(FORM_INPUT_NAME_DATA));
+    computopObj.setProcessStatus(EProcessStatus.New);
+    return computopObj;
+  }
+
+  private String getRequestParam(String key) {
+    String value = "";
+    if (context.getRequest().isPresent()) {
+      value = context.getRequest().get().get(key);
+    }
+    return value;
+  }
+
+  @Override
+  public void executeCallbackAction(Computop computopObj) throws ComputopCryptoException,
+      PaymentException {
+    EncryptedComputopData encryptedData = new EncryptedComputopData(computopObj.getData(),
+        computopObj.getLength());
+    Map<String, String> decryptedData = decryptCallbackData(encryptedData);
+    // TODO SYNCEL-26 verify callback
+    computopObj.setTxnId(decryptedData.get(FORM_INPUT_NAME_TRANS_ID));
+    paymentService.storePaymentObject(computopObj);
+    // TODO SYNCEL-26 save to BaseObject
   }
 
 }
