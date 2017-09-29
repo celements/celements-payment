@@ -41,6 +41,7 @@ import org.xwiki.script.service.ScriptService;
 import com.celements.model.context.ModelContext;
 import com.celements.payment.container.EncryptedComputopData;
 import com.celements.payment.exception.ComputopCryptoException;
+import com.celements.payment.exception.PaymentException;
 import com.google.common.base.Optional;
 import com.xpn.xwiki.web.XWikiRequest;
 
@@ -145,4 +146,15 @@ public class ComputopScriptService implements ScriptService {
     }
     return Collections.emptyMap();
   }
+
+  public boolean storeCallback() {
+    try {
+      computopService.storeCallback();
+      return true;
+    } catch (PaymentException exc) {
+      LOGGER.error("storeCallback failed", exc);
+      return false;
+    }
+  }
+
 }

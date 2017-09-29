@@ -89,15 +89,37 @@ public class ComputopService implements ComputopServiceRole {
   static final String CFG_PROP_BLOWFISH_SECRET_KEY = "computop_blowfish_secret_key";
   static final String CFG_PROP_HMAC_SECRET_KEY = "computop_hmac_secret_key";
 
-  static final String DATA_KEY_STATUS = "status";
-  static final String DATA_KEY_DESCR = "description";
-  static final String DATA_KEY_XID = "xid";
-  static final String DATA_KEY_MAC = "mac";
-  static final String DATA_KEY_CODE = "code";
-  static final String DATA_KEY_PAYID = "payid";
   static final String DATA_KEY_MID = "mid";
-  static final String DATA_KEY_TYPE = "type";
+  static final String DATA_KEY_PAYID = "payid";
+  static final String DATA_KEY_XID = "xid";
   static final String DATA_KEY_TRANSID = "transid";
+  static final String DATA_KEY_MAC = "mac";
+  static final String DATA_KEY_TYPE = "type";
+  static final String DATA_KEY_DESCR = "description";
+  static final String DATA_KEY_STATUS = "status";
+  static final String DATA_KEY_CODE = "code";
+
+  enum ReturnUrl {
+    SUCCESS("computop_return_url_success", "URLSuccess"),
+    FAILURE("computop_return_url_failure", "URLFailure"),
+    CALLBACK("computop_return_url_callback", "URLNotify");
+
+    private final String value;
+    private final String param;
+
+    private ReturnUrl(String value, String param) {
+      this.value = value;
+      this.param = param;
+    }
+
+    public @NotNull String getValue() {
+      return value;
+    }
+
+    public @NotNull String getParamName() {
+      return param;
+    }
+  }
 
   @Requirement
   private IPaymentService paymentService;
@@ -351,6 +373,8 @@ public class ComputopService implements ComputopServiceRole {
         throw new PaymentException(dse);
       }
     } else {
+      computopObj.setProcessStatus(EProcessStatus.Processed);
+      paymentService.storePaymentObject(computopObj);
       throw new PaymentException("No transId for: " + computopObj);
     }
   }
@@ -374,28 +398,6 @@ public class ComputopService implements ComputopServiceRole {
 
   private String getDataValue(Map<String, String> data, String key) {
     return nullToEmpty(data.get(configSrc.getProperty("computop_data_key_" + key, key)));
-  }
-
-  enum ReturnUrl {
-    SUCCESS("computop_return_url_success", "URLSuccess"),
-    FAILURE("computop_return_url_failure", "URLFailure"),
-    CALLBACK("computop_return_url_callback", "URLNotify");
-
-    private final String value;
-    private final String param;
-
-    private ReturnUrl(String value, String param) {
-      this.value = value;
-      this.param = param;
-    }
-
-    public @NotNull String getValue() {
-      return value;
-    }
-
-    public @NotNull String getParamName() {
-      return param;
-    }
   }
 
 }
