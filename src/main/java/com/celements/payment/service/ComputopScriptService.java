@@ -112,6 +112,7 @@ public class ComputopScriptService implements ScriptService {
 
   /* Double is used here, since cart item saves the amount as floating point number */
   public @NotNull String getPayFormAction(double amount) {
+    LOGGER.debug("checking amount[{}] > 0 to determin form action", amount);
     if (amount > 0) {
       return configSrc.getProperty(COMPUTOP_PAYFORM_ACTION_URL, "");
     }
