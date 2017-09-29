@@ -1,26 +1,5 @@
 package com.celements.payment.service;
 
-/*
- * See the NOTICE file distributed with this work for additional
- * information regarding copyright ownership.
- *
- * This is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation; either version 2.1 of
- * the License, or (at your option) any later version.
- *
- * This software is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this software; if not, write to the Free
- * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
- * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
- */
-
-import java.math.BigDecimal;
 import java.util.Map;
 
 import javax.annotation.Nullable;
@@ -68,13 +47,13 @@ public interface ComputopServiceRole {
    * @param merchantId
    *          The ID of the merchent receiving the payment
    * @param amount
-   *          Amount to be payed with 2 decimal
+   *          Amount to be payed in the smallest unit of the currency, e.g. cents for euros
    * @param currency
    *          Currency of the transaction
    * @return HMAC of the given data
    */
   public @NotNull String getPaymentDataHmac(@Nullable String payId, @Nullable String transId,
-      @Nullable String merchantId, @Nullable BigDecimal amount, @Nullable String currency);
+      @Nullable String merchantId, int amount, @Nullable String currency);
 
   /**
    * To verify the data returned to the success or failed URLs
@@ -124,7 +103,7 @@ public interface ComputopServiceRole {
    *           thrown if encryption fails with an Exception
    */
   public @NotNull EncryptedComputopData encryptPaymentData(@NotNull String transactionId,
-      @Nullable String orderDescription, @NotNull BigDecimal amount, @Nullable String currency)
+      @Nullable String orderDescription, int amount, @Nullable String currency)
       throws ComputopCryptoException;
 
   /**

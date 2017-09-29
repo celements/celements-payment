@@ -3,7 +3,6 @@ package com.celements.payment.service;
 import static com.celements.payment.service.ComputopServiceRole.*;
 import static com.google.common.base.Strings.*;
 
-import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.Map;
 
@@ -95,24 +94,33 @@ public class ComputopScriptService implements ScriptService {
     return computopService.isCallbackHashValid(hash, payId, transId, merchantId, status, code);
   }
 
+  /**
+   * Use discouraged, instead use int for the amount
+   */
+  /* Double is used here, since cart item saves the amount as float */
+  @Deprecated
   public @NotNull EncryptedComputopData encryptPaymentData(@NotNull String transactionId,
-      @Nullable String orderDescription, double amount, @Nullable String currency) {
+      @Nullable String orderDescription, float amount, @Nullable String currency) {
+    return encryptPaymentData(transactionId, orderDescription, Math.round(amount), currency);
+  }
+
+  public @NotNull EncryptedComputopData encryptPaymentData(@NotNull String transactionId,
+      @Nullable String orderDescription, int amount, @Nullable String currency) {
     try {
       if (transactionId != null) {
-        return computopService.encryptPaymentData(transactionId, orderDescription, new BigDecimal(
-            amount), currency);
+        return computopService.encryptPaymentData(transactionId, orderDescription, amount,
+            currency);
       } else {
         LOGGER.warn("encryptPaymentData called with transaction ID 'null'");
       }
     } catch (ComputopCryptoException cce) {
       LOGGER.error("Exception encrypting computop data transId [{}], orderDesc [{}], amount [{}], "
           + "currency [{}]", transactionId, orderDescription, amount, currency, cce);
-    } catch (NumberFormatException nfe) {
-      LOGGER.error("Invalid amount [{}]", amount, nfe);
     }
     return new EncryptedComputopData("", -1);
   }
 
+  /* Double is used here, since cart item saves the amount as float */
   public @NotNull String getPayFormAction(double amount) {
     if (amount > 0) {
       return configSrc.getProperty(COMPUTOP_PAYFORM_ACTION_URL, "");
