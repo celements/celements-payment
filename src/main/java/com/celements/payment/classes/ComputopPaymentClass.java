@@ -35,8 +35,8 @@ public class ComputopPaymentClass extends AbstractClassDefinition implements
   public static final ClassField<String> FIELD_STATUS = new StringField.Builder(CLASS_DEF_HINT,
       "status").build();
 
-  public static final ClassField<Integer> FIELD_ERROR_CODE = new IntField.Builder(CLASS_DEF_HINT,
-      "errorCode").build();
+  public static final ClassField<Integer> FIELD_STATUS_CODE = new IntField.Builder(CLASS_DEF_HINT,
+      "statusCode").build();
 
   public static final ClassField<Boolean> FIELD_VERIFIED = new BooleanField.Builder(CLASS_DEF_HINT,
       "verified").build();

@@ -374,7 +374,7 @@ public class ComputopService implements ComputopServiceRole {
     modelAccess.setProperty(paymentObj, FIELD_X_ID, getDataValue(data, DATA_KEY_XID));
     modelAccess.setProperty(paymentObj, FIELD_DESCRIPTION, getDataValue(data, DATA_KEY_DESCR));
     modelAccess.setProperty(paymentObj, FIELD_STATUS, getDataValue(data, DATA_KEY_STATUS));
-    modelAccess.setProperty(paymentObj, FIELD_ERROR_CODE, NumberUtils.toInt(getDataValue(data,
+    modelAccess.setProperty(paymentObj, FIELD_STATUS_CODE, NumberUtils.toInt(getDataValue(data,
         DATA_KEY_CODE), -1));
     modelAccess.setProperty(paymentObj, FIELD_VERIFIED, verified);
     modelAccess.setProperty(paymentObj, FIELD_DATA, data.toString());
