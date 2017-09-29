@@ -321,7 +321,7 @@ public class ComputopService implements ComputopServiceRole {
     if (!computopObj.getData().isEmpty()) {
       LOGGER.info("storeCallback: '{}'", computopObj);
       paymentService.storePaymentObject(computopObj);
-      // FIXME move callback processing to general async thread
+      // TODO [CELDEV-559] async callback processing
       executeCallbackAction(computopObj);
     } else {
       throw new PaymentException("empty callback data");
