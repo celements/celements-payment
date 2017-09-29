@@ -83,7 +83,7 @@ public class ComputopServiceTest extends AbstractComponentTest {
 
   @Test
   public void testGetPaymentDataHmac() {
-    String paymentHmac = "1df273c64b4342265e92357f7f3fb1cdfbfbe3e3c89d2fb8d93c25411a1a2285";
+    String paymentHmac = "927c9bcc5eaee1ce9e904237c1c78ec746e99e14016d8fe1155e508e4b2ae2f8";
     expect(configSrcMock.getProperty(eq(HMAC_SECRET_KEY_PROP), eq(""))).andReturn(
         DEFAULT_HMAC_TEST_KEY);
     replayDefault();
@@ -94,7 +94,7 @@ public class ComputopServiceTest extends AbstractComponentTest {
 
   @Test
   public void testGetPaymentDataHmac_nullField() {
-    String paymentHmac = "0678abd0cbc568254ab4a4ecff7beae7a1d3398cc106e2df50f815820c489a87";
+    String paymentHmac = "4c4b41b2f0f5de8c1a30006bfbadb0c1ebd2a320301feb1eed785de5bf6d506b";
     expect(configSrcMock.getProperty(eq(HMAC_SECRET_KEY_PROP), eq(""))).andReturn(
         DEFAULT_HMAC_TEST_KEY);
     replayDefault();
