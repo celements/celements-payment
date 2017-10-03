@@ -162,7 +162,7 @@ public interface ComputopServiceRole {
 
   void storeCallback() throws ComputopCryptoException, PaymentException;
 
-  void storeOfflineCallback(XWikiDocument doc) throws PaymentException;
+  void storeOfflineCallback(@NotNull XWikiDocument doc) throws PaymentException;
 
   void executeCallbackAction(@NotNull Computop computopObj) throws ComputopCryptoException,
       PaymentException;
