@@ -1,10 +1,13 @@
 package com.celements.payment.classes;
 
+import java.util.Date;
+
 import org.xwiki.component.annotation.Component;
 
 import com.celements.model.classes.AbstractClassDefinition;
 import com.celements.model.classes.fields.BooleanField;
 import com.celements.model.classes.fields.ClassField;
+import com.celements.model.classes.fields.DateField;
 import com.celements.model.classes.fields.LargeStringField;
 import com.celements.model.classes.fields.StringField;
 import com.celements.model.classes.fields.number.IntField;
@@ -43,6 +46,9 @@ public class ComputopPaymentClass extends AbstractClassDefinition implements
 
   public static final ClassField<String> FIELD_DATA = new LargeStringField.Builder(CLASS_DEF_HINT,
       "data").build();
+
+  public static final ClassField<Date> FIELD_CALLBACK_DATE = new DateField.Builder(CLASS_DEF_HINT,
+      "callbackDate").build();
 
   @Override
   public String getName() {

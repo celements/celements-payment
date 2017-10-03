@@ -256,6 +256,9 @@
     <property name="data" type="text">
       <column name="CPCT_DATA" />
     </property>
+    <property name="callbackDate" type="timestamp">
+      <column name="CPCT_CALLBACK_DATE" />
+    </property>
   </class>
 
 </hibernate-mapping>
