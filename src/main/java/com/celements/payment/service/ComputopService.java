@@ -29,6 +29,7 @@ import static java.lang.Math.*;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -95,9 +96,8 @@ public class ComputopService implements ComputopServiceRole {
   static final String DATA_KEY_CODE = "code";
 
   enum ReturnUrl {
-    SUCCESS("computop_return_url_success", "URLSuccess"),
-    FAILURE("computop_return_url_failure", "URLFailure"),
-    CALLBACK("computop_return_url_callback", "URLNotify");
+    SUCCESS("computop_return_url_success", "URLSuccess"), FAILURE("computop_return_url_failure",
+        "URLFailure"), CALLBACK("computop_return_url_callback", "URLNotify");
 
     private final String value;
     private final String param;
@@ -378,6 +378,7 @@ public class ComputopService implements ComputopServiceRole {
         DATA_KEY_CODE), -1));
     modelAccess.setProperty(paymentObj, FIELD_VERIFIED, verified);
     modelAccess.setProperty(paymentObj, FIELD_DATA, data.toString());
+    modelAccess.setProperty(paymentDoc, FIELD_CALLBACK_DATE, new Date());
     modelAccess.saveDocument(paymentDoc, "add computop payment object");
   }
 
