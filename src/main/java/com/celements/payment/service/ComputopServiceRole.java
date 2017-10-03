@@ -33,6 +33,7 @@ import com.celements.payment.container.EncryptedComputopData;
 import com.celements.payment.exception.ComputopCryptoException;
 import com.celements.payment.exception.PaymentException;
 import com.celements.payment.raw.Computop;
+import com.xpn.xwiki.doc.XWikiDocument;
 
 @ComponentRole
 public interface ComputopServiceRole {
@@ -161,7 +162,12 @@ public interface ComputopServiceRole {
 
   void storeCallback() throws ComputopCryptoException, PaymentException;
 
+  void storeOfflineCallback(XWikiDocument doc) throws PaymentException;
+
   void executeCallbackAction(@NotNull Computop computopObj) throws ComputopCryptoException,
       PaymentException;
+
+  void executeOfflineCallbackAction(@NotNull String transId, boolean verified,
+      @NotNull Map<String, String> data) throws PaymentException;
 
 }

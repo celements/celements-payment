@@ -156,4 +156,20 @@ public class ComputopScriptService implements ScriptService {
     }
   }
 
+  /**
+   * Store a callback for the current document (no check for request data from third parties)
+   *
+   * @return true if the callback was saved correctly
+   */
+  public boolean storeOfflineCallback() {
+    try {
+      LOGGER.info("storeOfflineCallback called");
+      computopService.storeOfflineCallback(modelContext.getDoc());
+      return true;
+    } catch (PaymentException exc) {
+      LOGGER.error("storeOfflineCallback failed", exc);
+      return false;
+    }
+  }
+
 }
