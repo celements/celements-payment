@@ -26,6 +26,8 @@ import javax.annotation.Nullable;
 import javax.validation.constraints.NotNull;
 
 import org.xwiki.component.annotation.ComponentRole;
+import org.xwiki.model.reference.DocumentReference;
+import org.xwiki.model.reference.SpaceReference;
 
 import com.celements.payment.container.EncryptedComputopData;
 import com.celements.payment.exception.ComputopCryptoException;
@@ -141,6 +143,21 @@ public interface ComputopServiceRole {
    */
   public @NotNull Map<String, String> decryptCallbackData(
       @NotNull EncryptedComputopData encryptedData) throws ComputopCryptoException;
+
+  @NotNull
+  String getMerchantId();
+
+  @NotNull
+  SpaceReference getOrderSpaceRef();
+
+  @NotNull
+  DocumentReference getOrderDocRef(@NotNull String transactionId);
+
+  @NotNull
+  SpaceReference getPaymentSpaceRef();
+
+  @NotNull
+  DocumentReference getPaymentDocRef(@NotNull String transactionId);
 
   void storeCallback() throws ComputopCryptoException, PaymentException;
 

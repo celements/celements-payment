@@ -94,4 +94,9 @@ public class Computop implements PaymentRawObject {
     this.processStatus = firstNonNull(processStatus, EProcessStatus.Unknown);
   }
 
+  @Override
+  public String toString() {
+    return "Computop [id=" + id + "]";
+  }
+
 }

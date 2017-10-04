@@ -1,5 +1,7 @@
 package com.celements.payment.service;
 
+import static com.celements.payment.classes.ComputopPaymentClass.*;
+
 /*
  * See the NOTICE file distributed with this work for additional
  * information regarding copyright ownership.
@@ -27,6 +29,7 @@ import static java.lang.Math.*;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,8 +49,14 @@ import org.slf4j.LoggerFactory;
 import org.xwiki.component.annotation.Component;
 import org.xwiki.component.annotation.Requirement;
 import org.xwiki.configuration.ConfigurationSource;
+import org.xwiki.model.reference.DocumentReference;
+import org.xwiki.model.reference.SpaceReference;
 
+import com.celements.model.access.IModelAccessFacade;
+import com.celements.model.access.exception.DocumentSaveException;
 import com.celements.model.context.ModelContext;
+import com.celements.model.object.xwiki.XWikiObjectEditor;
+import com.celements.model.util.References;
 import com.celements.payment.IPaymentService;
 import com.celements.payment.container.EncryptedComputopData;
 import com.celements.payment.exception.ComputopCryptoException;
@@ -57,21 +66,34 @@ import com.celements.payment.raw.EProcessStatus;
 import com.google.common.base.Optional;
 import com.google.common.base.Splitter;
 import com.google.common.io.BaseEncoding;
+import com.xpn.xwiki.doc.XWikiDocument;
+import com.xpn.xwiki.objects.BaseObject;
 
 @Component
 public class ComputopService implements ComputopServiceRole {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ComputopService.class);
 
-  static final String MERCHANT_ID_PROP = "computop_merchant_id";
-
   static final String BLOWFISH = "Blowfish";
   static final String BLOWFISH_ECB_PADDED = BLOWFISH + "/ECB/PKCS5Padding";
   static final String BLOWFISH_ECB_UNPADDED = BLOWFISH + "/ECB/NoPadding";
-  static final String BLOWFISH_SECRET_KEY_PROP = "computop_blowfish_secret_key";
-
   static final String HMAC_SHA256 = "HmacSHA256";
-  static final String HMAC_SECRET_KEY_PROP = "computop_hmac_secret_key";
+
+  static final String CFG_PROP_MERCHANT_ID = "computop_merchant_id";
+  static final String CFG_PROP_ORDER_SPACE = "computop_order_space";
+  static final String CFG_PROP_PAYMENT_SPACE = "computop_payment_space";
+  static final String CFG_PROP_BLOWFISH_SECRET_KEY = "computop_blowfish_secret_key";
+  static final String CFG_PROP_HMAC_SECRET_KEY = "computop_hmac_secret_key";
+
+  static final String DATA_KEY_MID = "mid";
+  static final String DATA_KEY_PAYID = "payid";
+  static final String DATA_KEY_XID = "xid";
+  static final String DATA_KEY_TRANSID = "transid";
+  static final String DATA_KEY_MAC = "mac";
+  static final String DATA_KEY_TYPE = "type";
+  static final String DATA_KEY_DESCR = "description";
+  static final String DATA_KEY_STATUS = "status";
+  static final String DATA_KEY_CODE = "code";
 
   enum ReturnUrl {
     SUCCESS("computop_return_url_success", "URLSuccess"), FAILURE("computop_return_url_failure",
@@ -95,13 +117,16 @@ public class ComputopService implements ComputopServiceRole {
   }
 
   @Requirement
-  IPaymentService paymentService;
+  private IPaymentService paymentService;
+
+  @Requirement
+  private IModelAccessFacade modelAccess;
 
   @Requirement
   private ConfigurationSource configSrc;
 
   @Requirement
-  ModelContext context;
+  private ModelContext context;
 
   @Override
   public boolean isCallbackHashValid(String hash, String payId, String transId, String merchantId,
@@ -114,6 +139,12 @@ public class ComputopService implements ComputopServiceRole {
       return false;
     }
     return true;
+  }
+
+  private boolean isCallbackHashValid(Map<String, String> data) {
+    return isCallbackHashValid(getDataValue(data, DATA_KEY_MAC), getDataValue(data, DATA_KEY_PAYID),
+        getDataValue(data, DATA_KEY_TRANSID), getDataValue(data, DATA_KEY_MID), getDataValue(data,
+            DATA_KEY_STATUS), getDataValue(data, DATA_KEY_CODE));
   }
 
   @Override
@@ -135,6 +166,10 @@ public class ComputopService implements ComputopServiceRole {
       LOGGER.warn("Key [{}] is not valid for generating HMAC", key);
     }
     return "";
+  }
+
+  private byte[] getHmacKey() {
+    return getCfgPropertyNonEmpty(CFG_PROP_HMAC_SECRET_KEY).getBytes();
   }
 
   @Override
@@ -164,6 +199,11 @@ public class ComputopService implements ComputopServiceRole {
     return callbackData;
   }
 
+  private SecretKey getBlowfishKey() {
+    return new SecretKeySpec(getCfgPropertyNonEmpty(CFG_PROP_BLOWFISH_SECRET_KEY).getBytes(),
+        BLOWFISH);
+  }
+
   String getPaymentDataPlainString(String transactionId, String orderDescription, int amount,
       String currency) {
     checkNotNull(transactionId);
@@ -182,6 +222,14 @@ public class ComputopService implements ComputopServiceRole {
     appendQueryParameter(sb, ReturnUrl.FAILURE.getParamName(), getReturnUrl(ReturnUrl.FAILURE));
     appendQueryParameter(sb, ReturnUrl.CALLBACK.getParamName(), getReturnUrl(ReturnUrl.CALLBACK));
     return sb.toString();
+  }
+
+  String getFormatedAmountString(int amount) {
+    return Integer.toString(amount);
+  }
+
+  String getReturnUrl(ReturnUrl urlType) {
+    return getCfgPropertyNonEmpty(urlType.getValue());
   }
 
   void appendQueryParameter(StringBuilder sb, String key, String value) {
@@ -233,34 +281,40 @@ public class ComputopService implements ComputopServiceRole {
     }
   }
 
-  String getFormatedAmountString(int amount) {
-    return Integer.toString(amount);
+  @Override
+  public String getMerchantId() {
+    return getCfgPropertyNonEmpty(CFG_PROP_MERCHANT_ID);
   }
 
-  byte[] getHmacKey() {
-    return configSrc.getProperty(HMAC_SECRET_KEY_PROP, "").getBytes();
+  @Override
+  public SpaceReference getOrderSpaceRef() {
+    return References.create(SpaceReference.class, getCfgPropertyNonEmpty(CFG_PROP_ORDER_SPACE),
+        context.getWikiRef());
   }
 
-  SecretKey getBlowfishKey() {
-    String secretKey = configSrc.getProperty(BLOWFISH_SECRET_KEY_PROP, "");
-    return new SecretKeySpec(secretKey.getBytes(), BLOWFISH);
+  @Override
+  public DocumentReference getOrderDocRef(String transactionId) {
+    return References.create(DocumentReference.class, transactionId, getOrderSpaceRef());
   }
 
-  String getMerchantId() {
-    return configSrc.getProperty(MERCHANT_ID_PROP, "");
+  @Override
+  public SpaceReference getPaymentSpaceRef() {
+    return References.create(SpaceReference.class, getCfgPropertyNonEmpty(CFG_PROP_PAYMENT_SPACE),
+        context.getWikiRef());
   }
 
-  String getReturnUrl(ReturnUrl urlType) {
-    return configSrc.getProperty(urlType.getValue(), "");
+  @Override
+  public DocumentReference getPaymentDocRef(String transactionId) {
+    return References.create(DocumentReference.class, transactionId, getPaymentSpaceRef());
   }
 
   @Override
   public void storeCallback() throws ComputopCryptoException, PaymentException {
-    LOGGER.info("received computop callback");
     Computop computopObj = createComputopObjectFromRequest();
     if (!computopObj.getData().isEmpty()) {
+      LOGGER.info("storeCallback: '{}'", computopObj);
       paymentService.storePaymentObject(computopObj);
-      // FIXME move callback processing to general async thread
+      // TODO [CELDEV-559] async callback processing
       executeCallbackAction(computopObj);
     } else {
       throw new PaymentException("empty callback data");
@@ -288,13 +342,54 @@ public class ComputopService implements ComputopServiceRole {
   @Override
   public void executeCallbackAction(Computop computopObj) throws ComputopCryptoException,
       PaymentException {
-    EncryptedComputopData encryptedData = new EncryptedComputopData(computopObj.getData(),
-        computopObj.getLength());
-    Map<String, String> decryptedData = decryptCallbackData(encryptedData);
-    // TODO SYNCEL-26 verify callback
-    computopObj.setTxnId(decryptedData.get(FORM_INPUT_NAME_TRANS_ID));
-    paymentService.storePaymentObject(computopObj);
-    // TODO SYNCEL-26 save to BaseObject
+    LOGGER.info("executeCallbackAction: '{}'", computopObj);
+    Map<String, String> data = decryptCallbackData(new EncryptedComputopData(computopObj.getData(),
+        computopObj.getLength()));
+    LOGGER.trace("executeCallbackAction: with data '{}'", data);
+    String transId = getDataValue(data, DATA_KEY_TRANSID);
+    if (!transId.isEmpty()) {
+      boolean verified = isCallbackHashValid(data);
+      computopObj.setTxnId(transId);
+      computopObj.setProcessStatus(verified ? EProcessStatus.Verified : EProcessStatus.Unverified);
+      paymentService.storePaymentObject(computopObj);
+      try {
+        storePaymentData(transId, verified, data);
+      } catch (DocumentSaveException dse) {
+        throw new PaymentException(dse);
+      }
+    } else {
+      computopObj.setProcessStatus(EProcessStatus.Processed);
+      paymentService.storePaymentObject(computopObj);
+      throw new PaymentException("No transId for: " + computopObj);
+    }
+  }
+
+  private void storePaymentData(String transId, boolean verified, Map<String, String> data)
+      throws DocumentSaveException {
+    XWikiDocument paymentDoc = modelAccess.getOrCreateDocument(getPaymentDocRef(transId));
+    BaseObject paymentObj = XWikiObjectEditor.on(paymentDoc).filter(FIELD_TRANS_ID,
+        transId).createFirstIfNotExists();
+    modelAccess.setProperty(paymentObj, FIELD_MERCHANT_ID, getDataValue(data, DATA_KEY_MID));
+    modelAccess.setProperty(paymentObj, FIELD_PAY_ID, getDataValue(data, DATA_KEY_PAYID));
+    modelAccess.setProperty(paymentObj, FIELD_X_ID, getDataValue(data, DATA_KEY_XID));
+    modelAccess.setProperty(paymentObj, FIELD_DESCRIPTION, getDataValue(data, DATA_KEY_DESCR));
+    modelAccess.setProperty(paymentObj, FIELD_STATUS, getDataValue(data, DATA_KEY_STATUS));
+    modelAccess.setProperty(paymentObj, FIELD_STATUS_CODE, NumberUtils.toInt(getDataValue(data,
+        DATA_KEY_CODE), -1));
+    modelAccess.setProperty(paymentObj, FIELD_VERIFIED, verified);
+    modelAccess.setProperty(paymentObj, FIELD_DATA, data.toString());
+    modelAccess.setProperty(paymentDoc, FIELD_CALLBACK_DATE, new Date());
+    modelAccess.saveDocument(paymentDoc, "add computop payment object");
+  }
+
+  private String getDataValue(Map<String, String> data, String key) {
+    return nullToEmpty(data.get(configSrc.getProperty("computop_data_key_" + key, key)));
+  }
+
+  private String getCfgPropertyNonEmpty(String key) {
+    String value = nullToEmpty(configSrc.getProperty(key, ""));
+    checkArgument(!value.isEmpty(), key + " not configured");
+    return value;
   }
 
 }

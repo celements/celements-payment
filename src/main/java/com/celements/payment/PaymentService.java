@@ -92,6 +92,7 @@ public class PaymentService implements IPaymentService {
           return null;
         }
       });
+      LOGGER.info("storePaymentObject: '{}'", paymentObj);
     } catch (XWikiException xwe) {
       throw new PaymentException(xwe);
     }
