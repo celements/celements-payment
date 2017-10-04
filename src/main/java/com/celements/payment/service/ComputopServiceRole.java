@@ -170,4 +170,6 @@ public interface ComputopServiceRole {
   void executeOfflineCallbackAction(@NotNull String transId, boolean verified,
       @NotNull Map<String, String> data) throws PaymentException;
 
+  boolean isAuthorizedPayment(@NotNull XWikiDocument doc);
+
 }
