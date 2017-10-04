@@ -250,7 +250,7 @@
     <property name="statusCode" type="integer">
       <column name="CPCT_STATUS_CODE" />
     </property>
-    <property name="verified" type="boolean">
+    <property name="verified" type="integer">
       <column name="CPCT_VERIFIED" />
     </property>
     <property name="data" type="text">
