@@ -35,6 +35,8 @@ import org.slf4j.LoggerFactory;
 import org.xwiki.component.annotation.Component;
 import org.xwiki.component.annotation.Requirement;
 import org.xwiki.configuration.ConfigurationSource;
+import org.xwiki.model.reference.DocumentReference;
+import org.xwiki.model.reference.SpaceReference;
 import org.xwiki.script.service.ScriptService;
 
 import com.celements.model.context.ModelContext;
@@ -183,6 +185,22 @@ public class ComputopScriptService implements ScriptService {
           modelContext.getUserName(), doc);
     }
     return false;
+  }
+
+  public SpaceReference getOrderSpaceRef() {
+    return computopService.getOrderSpaceRef();
+  }
+
+  public DocumentReference getOrderDocRef(String transactionId) {
+    return computopService.getOrderDocRef(transactionId);
+  }
+
+  public SpaceReference getPaymentSpaceRef() {
+    return computopService.getOrderSpaceRef();
+  }
+
+  public DocumentReference getPaymentDocRef(String transactionId) {
+    return computopService.getPaymentDocRef(transactionId);
   }
 
 }
