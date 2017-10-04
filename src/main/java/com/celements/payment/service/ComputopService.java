@@ -95,6 +95,21 @@ public class ComputopService implements ComputopServiceRole {
   static final String DATA_KEY_STATUS = "status";
   static final String DATA_KEY_CODE = "code";
 
+  enum ComputopPaymentStatus {
+    SUCCESSFUL("AUTHORIZED"), FAILED("FAILED");
+
+    private final String value;
+
+    private ComputopPaymentStatus(String value) {
+      this.value = value;
+    }
+
+    public @NotNull String getValue() {
+      return value;
+    }
+
+  }
+
   enum ReturnUrl {
     SUCCESS("computop_return_url_success", "URLSuccess"), FAILURE("computop_return_url_failure",
         "URLFailure"), CALLBACK("computop_return_url_callback", "URLNotify");
@@ -321,6 +336,26 @@ public class ComputopService implements ComputopServiceRole {
     }
   }
 
+  @Override
+  public void storeOfflineCallback(XWikiDocument doc) throws PaymentException {
+    Map<String, String> data = new HashMap<>();
+    data.put(DATA_KEY_MID, getMerchantId());
+    // TODO [CELDEV-561] create ClassDefinition for Classes.CXMLShoppingCartItem
+    DocumentReference classRef = new DocumentReference(context.getWikiRef().getName(), "Classes",
+        "CXMLShoppingCartItem");
+    BaseObject cartObj = modelAccess.getXObject(doc, classRef);
+    Float price = cartObj.getFloatValue("einzPreis");
+    String articleNr = cartObj.getStringValue("artikelnr");
+    data.put(DATA_KEY_DESCR, articleNr + ":" + price);
+    if ((price == null) || (price > 0)) {
+      data.put(DATA_KEY_STATUS, ComputopPaymentStatus.FAILED.getValue());
+    } else {
+      data.put(DATA_KEY_STATUS, ComputopPaymentStatus.SUCCESSFUL.getValue());
+    }
+    String transId = doc.getDocumentReference().getName();
+    executeOfflineCallbackAction(transId, true, data);
+  }
+
   private Computop createComputopObjectFromRequest() {
     Computop computopObj = new Computop();
     computopObj.setOrigHeader(paymentService.serializeHeaderFromRequest());
@@ -361,6 +396,17 @@ public class ComputopService implements ComputopServiceRole {
       computopObj.setProcessStatus(EProcessStatus.Processed);
       paymentService.storePaymentObject(computopObj);
       throw new PaymentException("No transId for: " + computopObj);
+    }
+  }
+
+  @Override
+  public void executeOfflineCallbackAction(String transId, boolean verified,
+      Map<String, String> data) throws PaymentException {
+    data.put(DATA_KEY_XID, "Manual Callback Action");
+    try {
+      storePaymentData(transId, verified, data);
+    } catch (DocumentSaveException dse) {
+      throw new PaymentException(dse);
     }
   }
 
