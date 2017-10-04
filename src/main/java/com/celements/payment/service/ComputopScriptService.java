@@ -41,7 +41,10 @@ import com.celements.model.context.ModelContext;
 import com.celements.payment.container.EncryptedComputopData;
 import com.celements.payment.exception.ComputopCryptoException;
 import com.celements.payment.exception.PaymentException;
+import com.celements.rights.access.EAccessLevel;
+import com.celements.rights.access.IRightsAccessFacadeRole;
 import com.google.common.base.Optional;
+import com.xpn.xwiki.doc.XWikiDocument;
 import com.xpn.xwiki.web.XWikiRequest;
 
 @Component("computop")
@@ -57,6 +60,9 @@ public class ComputopScriptService implements ScriptService {
 
   @Requirement
   private ConfigurationSource configSrc;
+
+  @Requirement
+  private IRightsAccessFacadeRole rightsAccess;
 
   @Requirement
   private ModelContext modelContext;
@@ -162,14 +168,20 @@ public class ComputopScriptService implements ScriptService {
    * @return true if the callback was saved correctly
    */
   public boolean storeOfflineCallback() {
-    try {
-      LOGGER.info("storeOfflineCallback called");
-      computopService.storeOfflineCallback(modelContext.getDoc());
-      return true;
-    } catch (PaymentException exc) {
-      LOGGER.error("storeOfflineCallback failed", exc);
-      return false;
+    XWikiDocument doc = modelContext.getDoc();
+    if (rightsAccess.hasAccessLevel(doc.getDocumentReference(), EAccessLevel.EDIT)) {
+      try {
+        LOGGER.info("storeOfflineCallback called");
+        computopService.storeOfflineCallback(doc);
+        return true;
+      } catch (PaymentException exc) {
+        LOGGER.error("storeOfflineCallback failed", exc);
+      }
+    } else {
+      LOGGER.warn("storeOfflineCallback [{}] has no edit rights on [{}]",
+          modelContext.getUserName(), doc);
     }
+    return false;
   }
 
 }
