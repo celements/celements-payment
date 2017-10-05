@@ -441,8 +441,9 @@ public class ComputopService implements ComputopServiceRole {
   }
 
   private String getDataValue(Map<String, String> data, String key) {
-    return MoreObjects.firstNonNull(emptyToNull(data.get(configSrc.getProperty("computop_data_key_"
-        + key, key))), key);
+    String dataMapKey = MoreObjects.firstNonNull(emptyToNull(configSrc.getProperty(
+        "computop_data_key_" + key, key)), key);
+    return nullToEmpty(data.get(dataMapKey));
   }
 
   private String getCfgPropertyNonEmpty(String key) {
