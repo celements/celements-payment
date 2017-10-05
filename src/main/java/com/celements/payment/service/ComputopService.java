@@ -49,6 +49,7 @@ import org.slf4j.LoggerFactory;
 import org.xwiki.component.annotation.Component;
 import org.xwiki.component.annotation.Requirement;
 import org.xwiki.configuration.ConfigurationSource;
+import org.xwiki.model.reference.ClassReference;
 import org.xwiki.model.reference.DocumentReference;
 import org.xwiki.model.reference.SpaceReference;
 
@@ -56,6 +57,7 @@ import com.celements.model.access.IModelAccessFacade;
 import com.celements.model.access.exception.DocumentSaveException;
 import com.celements.model.context.ModelContext;
 import com.celements.model.object.xwiki.XWikiObjectEditor;
+import com.celements.model.object.xwiki.XWikiObjectFetcher;
 import com.celements.model.util.References;
 import com.celements.payment.IPaymentService;
 import com.celements.payment.container.EncryptedComputopData;
@@ -339,22 +341,25 @@ public class ComputopService implements ComputopServiceRole {
 
   @Override
   public void storeOfflineCallback(XWikiDocument doc) throws PaymentException {
-    Map<String, String> data = new HashMap<>();
-    data.put(DATA_KEY_MID, getMerchantId());
-    // TODO [CELDEV-561] create ClassDefinition for Classes.CXMLShoppingCartItem
-    DocumentReference classRef = new DocumentReference(context.getWikiRef().getName(), "Classes",
-        "CXMLShoppingCartItem");
-    BaseObject cartObj = modelAccess.getXObject(doc, classRef);
-    Float price = cartObj.getFloatValue("einzPreis");
-    String articleNr = cartObj.getStringValue("artikelnr");
-    data.put(DATA_KEY_DESCR, articleNr + ":" + price);
-    if ((price == null) || (price > 0)) {
-      data.put(DATA_KEY_STATUS, ComputopPaymentStatus.FAILED.getValue());
+    // TODO [CELDEV-561] create ClassDefinitions for Classes.CXMLShoppingCart
+    ClassReference classRef = new ClassReference("Classes", "CXMLShoppingCartItem");
+    Optional<BaseObject> cartObj = XWikiObjectFetcher.on(doc).filter(classRef).first();
+    if (cartObj.isPresent()) {
+      Map<String, String> data = new HashMap<>();
+      data.put(DATA_KEY_MID, getMerchantId());
+      Float price = cartObj.get().getFloatValue("einzPreis");
+      String articleNr = cartObj.get().getStringValue("artikelnr");
+      data.put(DATA_KEY_DESCR, articleNr + ":" + price);
+      if ((price == null) || (price > 0)) {
+        data.put(DATA_KEY_STATUS, ComputopPaymentStatus.FAILED.getValue());
+      } else {
+        data.put(DATA_KEY_STATUS, ComputopPaymentStatus.SUCCESSFUL.getValue());
+      }
+      String transId = doc.getDocumentReference().getName();
+      executeOfflineCallbackAction(transId, true, data);
     } else {
-      data.put(DATA_KEY_STATUS, ComputopPaymentStatus.SUCCESSFUL.getValue());
+      throw new PaymentException("no order doc: " + doc.getDocumentReference());
     }
-    String transId = doc.getDocumentReference().getName();
-    executeOfflineCallbackAction(transId, true, data);
   }
 
   private Computop createComputopObjectFromRequest() {
@@ -409,6 +414,12 @@ public class ComputopService implements ComputopServiceRole {
     } catch (DocumentSaveException dse) {
       throw new PaymentException(dse);
     }
+  }
+
+  @Override
+  public boolean isAuthorizedPayment(XWikiDocument doc) {
+    return XWikiObjectFetcher.on(doc).filter(FIELD_STATUS,
+        ComputopPaymentStatus.SUCCESSFUL.getValue()).exists();
   }
 
   private void storePaymentData(String transId, boolean verified, Map<String, String> data)

@@ -7,3 +7,4 @@ com.celements.payment.service.PostFinanceService
 com.celements.payment.service.PostFinanceScriptService
 com.celements.payment.classes.PaymentClassPackage
 com.celements.payment.classes.ComputopPaymentClass
+com.celements.payment.observation.ComputopPaymentListener
