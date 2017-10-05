@@ -63,6 +63,7 @@ import com.celements.payment.exception.ComputopCryptoException;
 import com.celements.payment.exception.PaymentException;
 import com.celements.payment.raw.Computop;
 import com.celements.payment.raw.EProcessStatus;
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
 import com.google.common.base.Splitter;
 import com.google.common.io.BaseEncoding;
@@ -429,7 +430,8 @@ public class ComputopService implements ComputopServiceRole {
   }
 
   private String getDataValue(Map<String, String> data, String key) {
-    return nullToEmpty(data.get(configSrc.getProperty("computop_data_key_" + key, key)));
+    return MoreObjects.firstNonNull(emptyToNull(data.get(configSrc.getProperty("computop_data_key_"
+        + key, key))), key);
   }
 
   private String getCfgPropertyNonEmpty(String key) {
