@@ -99,7 +99,8 @@ public class ComputopService implements ComputopServiceRole {
   static final String DATA_KEY_CODE = "code";
 
   enum ComputopPaymentStatus {
-    SUCCESSFUL("AUTHORIZED"), FAILED("FAILED");
+    SUCCESSFUL("AUTHORIZED"),
+    FAILED("FAILED");
 
     private final String value;
 
@@ -114,8 +115,9 @@ public class ComputopService implements ComputopServiceRole {
   }
 
   enum ReturnUrl {
-    SUCCESS("computop_return_url_success", "URLSuccess"), FAILURE("computop_return_url_failure",
-        "URLFailure"), CALLBACK("computop_return_url_callback", "URLNotify");
+    SUCCESS("computop_return_url_success", "URLSuccess"),
+    FAILURE("computop_return_url_failure", "URLFailure"),
+    CALLBACK("computop_return_url_callback", "URLNotify");
 
     private final String value;
     private final String param;
@@ -418,7 +420,7 @@ public class ComputopService implements ComputopServiceRole {
 
   @Override
   public boolean isAuthorizedPayment(XWikiDocument doc) {
-    return XWikiObjectFetcher.on(doc).filter(FIELD_STATUS,
+    return XWikiObjectFetcher.on(doc).filter(FIELD_VERIFIED, true).filter(FIELD_STATUS,
         ComputopPaymentStatus.SUCCESSFUL.getValue()).exists();
   }
 

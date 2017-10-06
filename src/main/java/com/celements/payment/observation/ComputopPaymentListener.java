@@ -17,6 +17,7 @@ import com.celements.common.observation.listener.AbstractLocalEventListener;
 import com.celements.model.access.IModelAccessFacade;
 import com.celements.model.access.exception.DocumentAccessException;
 import com.celements.model.classes.ClassDefinition;
+import com.celements.model.object.xwiki.XWikiObjectEditor;
 import com.celements.model.object.xwiki.XWikiObjectFetcher;
 import com.celements.payment.classes.ComputopPaymentClass;
 import com.celements.payment.service.ComputopServiceRole;
@@ -69,13 +70,15 @@ public class ComputopPaymentListener extends AbstractLocalEventListener<XWikiDoc
       XWikiDocument orderDoc = modelAccess.getDocument(orderDocRef);
       // TODO [CELDEV-561] create ClassDefinitions for Classes.CXMLShoppingCart
       ClassReference classRef = new ClassReference("Classes", "CXMLShoppingCartOrder");
-      Optional<BaseObject> orderObj = XWikiObjectFetcher.on(orderDoc).filter(classRef).first();
+      Optional<BaseObject> orderObj = XWikiObjectEditor.on(orderDoc).filter(
+          classRef).fetch().first();
       if (orderObj.isPresent()) {
         String status = "CartStati.Payment" + (isAuthorizedPayment ? "Success" : "Failure");
         if (modelAccess.setProperty(orderObj.get(), "status", status)) {
           modelAccess.saveDocument(orderDoc, "set order status from payment update");
         }
-        LOGGER.info("setOrderStatus: for '{}'", orderDocRef);
+        LOGGER.info("setOrderStatus: for '{}' to '{}', isAuthorizedPayment '{}'", orderDocRef,
+            status, isAuthorizedPayment);
       } else {
         LOGGER.warn("setOrderStatus: missing order object '{}'", orderDocRef);
       }
