@@ -72,10 +72,11 @@ public class ComputopPaymentListener extends AbstractLocalEventListener<XWikiDoc
       Optional<BaseObject> orderObj = XWikiObjectFetcher.on(orderDoc).filter(classRef).first();
       if (orderObj.isPresent()) {
         String status = "CartStati.Payment" + (isAuthorizedPayment ? "Success" : "Failure");
-        if (modelAccess.setProperty(orderObj.get(), "status", status)) {
+        boolean changed = modelAccess.setProperty(orderObj.get(), "status", status);
+        if (changed) {
           modelAccess.saveDocument(orderDoc, "set order status from payment update");
         }
-        LOGGER.info("setOrderStatus: for '{}'", orderDocRef);
+        LOGGER.info("setOrderStatus: for '{}' to '{}', changed '{}'", orderDocRef, status, changed);
       } else {
         LOGGER.warn("setOrderStatus: missing order object '{}'", orderDocRef);
       }
