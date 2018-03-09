@@ -26,7 +26,7 @@
 
 <hibernate-mapping>
   <class entity-name="PaymentClasses.HistoryClass" table="cel_payment_history">
-  <id name="id" type="integer" unsaved-value="undefined">
+  <id name="id" type="long" unsaved-value="undefined">
     <column name="CPH_ID" not-null="true" />
     <generator class="assigned" />
   </id>
@@ -225,7 +225,7 @@
   </class>
   
   <class entity-name="PaymentClasses.ComputopPaymentClass" table="cel_payment_computop">
-    <id name="id" type="integer" unsaved-value="undefined">
+    <id name="id" type="long" unsaved-value="undefined">
       <column name="CPCT_ID" not-null="true" />
       <generator class="assigned" />
     </id>
