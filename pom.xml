@@ -30,7 +30,7 @@
   </parent>
   <modelVersion>4.0.0</modelVersion>
   <artifactId>payment</artifactId>
-  <version>5.1-SNAPSHOT</version>
+  <version>5.0.1</version>
   <description>Celements Payment</description>
   <dependencies>
     <!-- Add here all your dependencies -->
@@ -75,6 +75,6 @@
     <connection>scm:git:git@github.com:celements/celements-payment.git</connection>
     <developerConnection>scm:git:git@github.com:celements/celements-payment.git</developerConnection>
     <url>https://github.com/celements/celements-payment</url>
-    <tag>HEAD</tag>
+    <tag>payment-5.0.1</tag>
   </scm>
 </project>
