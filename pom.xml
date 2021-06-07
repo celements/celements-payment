@@ -26,7 +26,7 @@
   <parent>
       <groupId>com.celements</groupId>
       <artifactId>celements</artifactId>
-      <version>5.0.1</version>
+      <version>5.2-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
   <artifactId>payment</artifactId>
@@ -36,38 +36,40 @@
     <!-- Add here all your dependencies -->
     <dependency>
       <groupId>com.celements</groupId>
+      <artifactId>celements-shared-tests-deprecated</artifactId>
+      <version>5.0-SNAPSHOT</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.celements</groupId>
       <artifactId>celements-model</artifactId>
-      <version>5.0.1</version>
+      <version>5.1-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>com.celements</groupId>
       <artifactId>celements-core</artifactId>
-      <version>5.0.1</version>
+      <version>5.1-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
        <groupId>org.hibernate</groupId>
        <artifactId>hibernate-core</artifactId>
-       <version>3.3.2.GA</version>
        <scope>provided</scope>
     </dependency>
     <dependency>
        <groupId>org.hibernate</groupId>
        <artifactId>hibernate-annotations</artifactId>
-       <version>3.4.0.GA</version>
        <scope>provided</scope>
     </dependency>
     <dependency>
        <groupId>org.hibernate</groupId>
        <artifactId>hibernate-commons-annotations</artifactId>
-       <version>3.3.0.ga</version>
        <scope>provided</scope>
     </dependency>
     <dependency>
        <groupId>org.hibernate</groupId>
        <artifactId>hibernate-entitymanager</artifactId>
-       <version>3.4.0.GA</version>
        <scope>provided</scope>
     </dependency>
   </dependencies>
