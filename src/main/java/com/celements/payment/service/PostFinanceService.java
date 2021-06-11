@@ -19,8 +19,8 @@
  */
 package com.celements.payment.service;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.hibernate.FlushMode;
 import org.hibernate.HibernateException;
 import org.hibernate.ObjectNotFoundException;
@@ -39,7 +39,7 @@ import com.xpn.xwiki.store.XWikiHibernateStore;
 @Component
 public class PostFinanceService implements IPostFinanceService {
 
-  private static Log LOGGER = LogFactory.getFactory().getInstance(PostFinanceService.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(PostFinanceService.class);
 
   @Requirement
   Execution execution;
@@ -82,7 +82,7 @@ public class PostFinanceService implements IPostFinanceService {
   // ).list();
   // } catch (IllegalArgumentException ex) {
   // // This happens when the database has wrong values...
-  // mLogger.warn("Invalid status protocol for document " + id);
+  // LOGGER.warn("Invalid status protocol for document " + id);
   // return Collections.emptyList();
   // }
   // }

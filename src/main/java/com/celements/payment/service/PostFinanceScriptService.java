@@ -31,8 +31,8 @@ import java.util.Map;
 
 import javax.inject.Singleton;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.xwiki.component.annotation.Component;
 import org.xwiki.component.annotation.Requirement;
 import org.xwiki.context.Execution;
@@ -55,7 +55,7 @@ import com.xpn.xwiki.web.XWikiRequest;
 @Singleton
 public class PostFinanceScriptService implements ScriptService {
 
-  private static Log LOGGER = LogFactory.getFactory().getInstance(PostFinanceScriptService.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(PostFinanceScriptService.class);
 
   @Requirement
   IPostFinanceService postFinanceService;
