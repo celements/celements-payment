@@ -50,7 +50,7 @@ import com.xpn.xwiki.web.XWikiRequest;
 @Component
 public class PaymentService implements IPaymentService {
 
-  private static Logger LOGGER = LoggerFactory.getLogger(PaymentService.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(PaymentService.class);
 
   @Requirement
   private ModelContext context;
